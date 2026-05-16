@@ -12,9 +12,19 @@ const fs = require('fs');
 const path = require('path');
 
 function buildDataScript(portfolioData, childMeta) {
+  // IMPORTANT: childMeta must win when both sides define a `meta` key, otherwise
+  // editing any meta field in the admin form would wipe out server-computed
+  // fields like avatar_url, name, and nickname.
+  const portfolioMeta = (portfolioData && portfolioData.meta) || {};
+  const mergedMeta = { ...portfolioMeta, ...childMeta };
+  // Strip nulls from childMeta so portfolioMeta's value shows through for
+  // fields the server didn't compute.
+  for (const k of Object.keys(mergedMeta)) {
+    if (mergedMeta[k] == null && portfolioMeta[k] != null) mergedMeta[k] = portfolioMeta[k];
+  }
   const payload = JSON.stringify({
-    meta: childMeta,
     ...portfolioData,
+    meta: mergedMeta,
   }).replace(/</g, '\\u003c'); // safe-encode for inline <script>
   return `<script>
 window.PORTFOLIO_DATA = ${payload};
