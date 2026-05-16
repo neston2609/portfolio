@@ -42,10 +42,13 @@ function renderTheme(theme, { portfolioData, childMeta, assetBase }) {
   const indexPath = path.join(theme.dir, theme.entry_file);
   let html = fs.readFileSync(indexPath, 'utf8');
 
-  const dataScript = buildDataScript(portfolioData, childMeta);
-  const baseTag = `<base href="${assetBase}">`;
+  // Rewrite relative asset URLs (src="variant.jsx" -> src="/_theme-assets/variant.jsx").
+  // We do NOT use a <base href> tag here because that would also re-anchor
+  // every same-page hash link (#about, #powers, ...) to /_theme-assets/#about,
+  // breaking the in-page nav.
+  html = rewriteRelativePaths(html, assetBase);
 
-  const injection = `${baseTag}\n${dataScript}`;
+  const injection = buildDataScript(portfolioData, childMeta);
 
   if (html.includes('<!--PORTFOLIO_DATA-->')) {
     html = html.replace('<!--PORTFOLIO_DATA-->', injection);
@@ -55,6 +58,27 @@ function renderTheme(theme, { portfolioData, childMeta, assetBase }) {
     html = injection + html;
   }
   return html;
+}
+
+// Rewrite relative src= and href= attributes to prepend assetBase.
+// Leaves these untouched:
+//   - absolute URLs (http://, https://, //)
+//   - root-relative paths (/foo)
+//   - anchor hashes (#about) — critical for in-page nav
+//   - mailto:, tel:, javascript:, data: URIs
+function rewriteRelativePaths(html, assetBase) {
+  const base = assetBase.endsWith('/') ? assetBase : assetBase + '/';
+  return html.replace(
+    /(\s(?:src|href)\s*=\s*)(["'])([^"']+)\2/gi,
+    (full, prefix, quote, val) => {
+      if (/^(https?:)?\/\/|^\/|^#|^mailto:|^tel:|^javascript:|^data:/i.test(val)) {
+        return full;
+      }
+      // Strip a leading "./" so we don't double the slash.
+      const clean = val.replace(/^\.\//, '');
+      return `${prefix}${quote}${base}${clean}${quote}`;
+    }
+  );
 }
 
 module.exports = { renderTheme };
