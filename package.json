@@ -10,7 +10,8 @@
     "dev": "nodemon src/server.js",
     "migrate": "node db/migrate.js",
     "admin:dev": "cd admin && npm run dev",
-    "admin:build": "cd admin && npm install && npm run build"
+    "admin:build": "cd admin && npm install && npm run build",
+    "push": "bash scripts/push.sh"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
