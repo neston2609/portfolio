@@ -37,13 +37,15 @@ export default function ChildEditor() {
   const [dataErr, setDataErr] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
+  const [aiAvailable, setAiAvailable] = useState(false);
 
   async function loadAll() {
-    const [c, t, p, m] = await Promise.all([
+    const [c, t, p, m, ai] = await Promise.all([
       api.get(`/children/${id}`),
       api.get('/themes'),
       api.get(`/children/${id}/portfolio`),
       api.get(`/children/${id}/media`),
+      api.get('/ai/status').catch(() => ({ available: false })),
     ]);
     setChild(c);
     setThemes(t);
@@ -52,6 +54,7 @@ export default function ChildEditor() {
     setMedia(m);
     setDataObj(p.data || {});
     setDataText(JSON.stringify(p.data || {}, null, 2));
+    setAiAvailable(!!ai.available);
   }
   useEffect(() => { loadAll(); }, [id]);
 
@@ -200,6 +203,7 @@ export default function ChildEditor() {
             childId={id}
             portfolioUrl={portfolioUrl}
             api={api}
+            aiAvailable={aiAvailable}
           />
         ) : (
           <>

@@ -14,6 +14,7 @@
     "push": "bash scripts/push.sh"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
     "bcryptjs": "^2.4.3",
     "connect-pg-simple": "^9.0.1",
     "dotenv": "^16.4.5",

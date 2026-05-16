@@ -5,13 +5,15 @@
 import React from 'react';
 import { TextField, MultilangField, NumberField, ColorField, ArrayField, Section, Row, FileAttachField, DateField } from './fields.jsx';
 
-export default function PortfolioForm({ data, onChange, childId, portfolioUrl, api }) {
+export default function PortfolioForm({ data, onChange, childId, portfolioUrl, api, aiAvailable }) {
   // Helper: replace a top-level section with a patched copy.
   const setSection = (key) => (next) => onChange({ ...data, [key]: next });
   const meta = data.meta || {};
   const setMeta = (patch) => onChange({ ...data, meta: { ...meta, ...patch } });
   // Context used by per-item file-attach fields (certs/awards).
   const fileCtx = { uploadUrl: `/children/${childId}/media`, previewBase: portfolioUrl, api };
+  // Extract context for AI auto-fill button.
+  const extractCtx = { extractUrl: `/children/${childId}/extract-from-file`, api, available: aiAvailable };
 
   return (
     <div>
@@ -39,8 +41,8 @@ export default function PortfolioForm({ data, onChange, childId, portfolioUrl, a
       <ScratchEditor value={data.scratch} onChange={setSection('scratch')} />
       <GalleryEditor value={data.gallery} onChange={setSection('gallery')} fileCtx={fileCtx} />
       <AchievementsEditor value={data.achievements} onChange={setSection('achievements')} />
-      <AwardsEditor value={data.awards} onChange={setSection('awards')} fileCtx={fileCtx} />
-      <CertificatesEditor value={data.certificates} onChange={setSection('certificates')} fileCtx={fileCtx} />
+      <AwardsEditor value={data.awards} onChange={setSection('awards')} fileCtx={fileCtx} extractCtx={extractCtx} />
+      <CertificatesEditor value={data.certificates} onChange={setSection('certificates')} fileCtx={fileCtx} extractCtx={extractCtx} />
       <SocialEditor value={data.social} onChange={setSection('social')} fileCtx={fileCtx} />
     </div>
   );
@@ -305,7 +307,7 @@ function AchievementsEditor({ value, onChange }) {
   );
 }
 
-function AwardsEditor({ value, onChange, fileCtx }) {
+function AwardsEditor({ value, onChange, fileCtx, extractCtx }) {
   const v = value || {};
   return (
     <Section title="Awards / Trophies" badge={(v.items || []).length + ' awards'}>
@@ -329,6 +331,15 @@ function AwardsEditor({ value, onChange, fileCtx }) {
               onChange={(url) => update({ file_url: url })}
               {...fileCtx}
             />
+            <ExtractButton
+              fileUrl={it.file_url}
+              ctx={extractCtx}
+              apply={(d) => update({
+                name: d.title ? { en: d.title } : it.name,
+                year: d.year || it.year,
+                rank: d.rank ? { en: d.rank } : it.rank,
+              })}
+            />
           </>
         )}
       />
@@ -336,7 +347,7 @@ function AwardsEditor({ value, onChange, fileCtx }) {
   );
 }
 
-function CertificatesEditor({ value, onChange, fileCtx }) {
+function CertificatesEditor({ value, onChange, fileCtx, extractCtx }) {
   const v = value || {};
   return (
     <Section title="Certificates" badge={(v.items || []).length + ' certificates'}>
@@ -384,6 +395,15 @@ function CertificatesEditor({ value, onChange, fileCtx }) {
                 value={it.file_url}
                 onChange={(url) => update({ file_url: url })}
                 {...fileCtx}
+              />
+              <ExtractButton
+                fileUrl={it.file_url}
+                ctx={extractCtx}
+                apply={(d) => update({
+                  name: d.title ? { en: d.title } : it.name,
+                  issuer: d.issuer ? { en: d.issuer } : it.issuer,
+                  date: d.date || (d.year ? d.year : it.date),
+                })}
               />
             </>
           );
@@ -449,6 +469,41 @@ function ageFromDob(dob) {
   let age = now.getFullYear() - birth.getFullYear();
   if (now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())) age--;
   return age >= 0 ? age : null;
+}
+
+// "Auto-fill from file" button shown under each award/certificate's
+// FileAttachField. Hidden when no file is attached, when the AI key isn't
+// configured, or when a request is already in flight.
+function ExtractButton({ fileUrl, ctx, apply }) {
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const [okMsg, setOkMsg] = React.useState(null);
+  if (!fileUrl || !ctx?.available) return null;
+
+  async function run() {
+    setBusy(true); setErr(null); setOkMsg(null);
+    try {
+      const data = await ctx.api.post(ctx.extractUrl, { file_url: fileUrl });
+      apply(data);
+      const filled = ['title', 'year', 'date', 'issuer', 'rank'].filter((k) => data[k] != null);
+      setOkMsg(filled.length ? `Filled: ${filled.join(', ')}` : 'No fields could be read with confidence');
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <button type="button" onClick={run} disabled={busy} style={{
+        background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6,
+        padding: '6px 14px', fontSize: 12, cursor: busy ? 'wait' : 'pointer',
+        opacity: busy ? 0.6 : 1, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6,
+      }}>
+        {busy ? 'Reading…' : '✨ Auto-fill from file (Claude)'}
+      </button>
+      {okMsg && <span style={{ color: '#86efac', fontSize: 12 }}>{okMsg}</span>}
+      {err && <span style={{ color: '#fca5a5', fontSize: 12 }}>{err}</span>}
+    </div>
+  );
 }
 
 function Select({ label, value, onChange, options }) {

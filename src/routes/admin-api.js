@@ -11,6 +11,7 @@ const children = require('../services/children');
 const portfolios = require('../services/portfolios');
 const themes = require('../services/themes');
 const media = require('../services/media');
+const aiExtract = require('../services/ai-extract');
 const { wrapRouter } = require('../utils/async-handler');
 
 const router = wrapRouter(express.Router());
@@ -175,6 +176,38 @@ router.delete('/children/:id/avatar', async (req, res) => {
   if (!c) return res.status(404).json({ error: 'not found' });
   const updated = await children.updateChild(c.id, { avatar_media_id: null });
   res.json({ child: updated });
+});
+
+// --- AI extraction (Anthropic API) ---------------------------------------
+// Extract award / certificate metadata from a previously-uploaded media
+// file. Body: { file_url: "/_media/<childId>/<mediaId>" }. Returns the
+// extracted fields, or 400 with `ai_unavailable` if no ANTHROPIC_API_KEY.
+
+router.get('/ai/status', (_req, res) => {
+  res.json({ available: aiExtract.isAvailable() });
+});
+
+router.post('/children/:id/extract-from-file', express.json(), async (req, res) => {
+  if (!aiExtract.isAvailable()) {
+    return res.status(400).json({ error: 'ai_unavailable', message: 'ANTHROPIC_API_KEY is not configured on the server' });
+  }
+  const c = await children.getChildById(req.params.id);
+  if (!c) return res.status(404).json({ error: 'not found' });
+
+  const { file_url } = req.body || {};
+  if (!file_url) return res.status(400).json({ error: 'file_url required' });
+
+  const m = String(file_url).match(/^\/_media\/[^/]+\/([0-9a-f-]{36})$/i);
+  if (!m) return res.status(400).json({ error: 'invalid media URL' });
+
+  const mediaRecord = await media.getMediaForServe(c.id, m[1]);
+  if (!mediaRecord) return res.status(404).json({ error: 'media not found' });
+
+  const extracted = await aiExtract.extractAwardData(mediaRecord.storage_path, mediaRecord.mime_type);
+  if (!extracted) {
+    return res.status(502).json({ error: 'extraction_failed', message: 'Claude could not extract metadata from this file' });
+  }
+  res.json(extracted);
 });
 
 // --- Themes --------------------------------------------------------------
