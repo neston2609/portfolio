@@ -583,7 +583,7 @@ function PortfolioSticker({ lang, onLangChange }) {
 
         {/* Sub-row: CERTIFICATES */}
         <div className="k-display" style={{ fontSize: 32, color: palette.ink, marginBottom: 16, transform:'rotate(-1deg)', display:'inline-block' }}>
-          ★ {L(data.certificates.title, lang)} <span className="k-marker" style={{ fontSize: 22, color: palette.inkSoft }}>· {t('proof of skills','หลักฐานทักษะ')}</span>
+          ★ {L(data.certificates.title, lang)}
         </div>
         <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 32, alignItems:'center' }}>
           <span className="k-marker" style={{ fontSize: 20, marginRight: 8 }}>{t('show me →','โชว์ →')}</span>

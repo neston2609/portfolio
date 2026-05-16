@@ -537,7 +537,6 @@ function PortfolioCapy({ lang, onLangChange }) {
         {/* Sub-row: CERTIFICATES */}
         <div style={{ display:'flex', alignItems:'baseline', gap: 12, marginBottom: 18 }}>
           <span className="p-display" style={{ fontSize: 24, color: palette.brownDark }}>★ {L(data.certificates.title, lang)}</span>
-          <span className="p-hand" style={{ fontSize: 22, color: palette.brown }}>· {t('proof of skills','หลักฐานทักษะ')}</span>
         </div>
         <div className="p-card" style={{ padding: 24 }}>
           <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 24, alignItems:'center' }}>

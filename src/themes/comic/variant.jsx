@@ -516,7 +516,6 @@ function PortfolioComic({ lang, onLangChange }) {
         {/* Sub-row: CERTIFICATES */}
         <div style={{ display:'flex', alignItems:'baseline', gap: 12, marginBottom: 16 }}>
           <span className="c-display" style={{ fontSize: 24, color: palette.blue }}>★ {L(data.certificates.title, lang)}</span>
-          <span className="c-hand" style={{ fontSize: 17, color: palette.inkSoft }}>· {t('proof of skills','หลักฐานทักษะ')}</span>
         </div>
         <div className="c-panel" style={{ padding: 24 }}>
           <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 24, alignItems:'center' }}>
