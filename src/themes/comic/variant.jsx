@@ -7,7 +7,9 @@ const { useState: useStateC, useMemo: useMemoC } = React;
 function PortfolioComic({ lang, onLangChange }) {
   const [cert, setCert] = useStateC(null);
   const [filter, setFilter] = useStateC('all');
+  const [lightbox, setLightbox] = useStateC(null); // index into galleryImages
   const data = PORTFOLIO_DATA;
+  const galleryImages = useMemoC(() => (data.gallery?.items || []).filter((g) => g.file_url), [data.gallery]);
 
   const palette = {
     paper: '#fffaf0',
@@ -316,7 +318,7 @@ function PortfolioComic({ lang, onLangChange }) {
               <span>★ {data.youtube.channel.views} {t('VIEWS','วิว')}</span>
             </div>
           </div>
-          <a href={data.youtube.channel.url} className="c-btn red c-link" style={{ position:'relative', zIndex: 1, background: palette.paper, color: '#ff0000' }}>
+          <a href={data.youtube.channel.url} target="_blank" rel="noopener noreferrer" className="c-btn red c-link" style={{ position:'relative', zIndex: 1, background: palette.paper, color: '#ff0000' }}>
             {t('SUBSCRIBE','กดติดตาม')} ▶
           </a>
           {/* halftone backdrop */}
@@ -326,16 +328,19 @@ function PortfolioComic({ lang, onLangChange }) {
         {/* Video thumbnails */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 20 }}>
           {data.youtube.items.map((v, i) => (
-            <a key={i} href="#" className="c-panel c-card c-link" style={{ display:'flex', gap: 16, padding: 16 }}>
+            <a key={i} href={v.url || '#'} target={v.url ? '_blank' : undefined} rel={v.url ? 'noopener noreferrer' : undefined} className="c-panel c-card c-link" style={{ display:'flex', gap: 16, padding: 16 }}>
               <div style={{
                 flex: '0 0 200px', aspectRatio:'16/9',
-                background: `${v.bg} radial-gradient(circle, ${palette.ink}33 1.2px, transparent 1.3px) 0 0/8px 8px`,
+                background: v.thumbnail ? '#000' : `${v.bg} radial-gradient(circle, ${palette.ink}33 1.2px, transparent 1.3px) 0 0/8px 8px`,
                 border: `3px solid ${palette.ink}`, borderRadius: 6,
                 display:'grid', placeItems:'center',
                 position:'relative', overflow:'hidden',
               }}>
-                <div style={{ fontSize: 56, filter: `drop-shadow(3px 3px 0 ${palette.ink})` }}>{v.emoji}</div>
-                <div style={{ position:'absolute', bottom: 6, right: 6, background: palette.ink, color: palette.paper, padding:'2px 8px', borderRadius: 4, fontFamily:'"JetBrains Mono", monospace', fontSize: 11 }}>{v.duration}</div>
+                {v.thumbnail
+                  ? <img src={v.thumbnail} alt={L(v.title, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ fontSize: 56, filter: `drop-shadow(3px 3px 0 ${palette.ink})` }}>{v.emoji}</div>
+                }
+                {v.duration && <div style={{ position:'absolute', bottom: 6, right: 6, background: palette.ink, color: palette.paper, padding:'2px 8px', borderRadius: 4, fontFamily:'"JetBrains Mono", monospace', fontSize: 11 }}>{v.duration}</div>}
                 <div style={{ position:'absolute', top: 8, left: 8, background: '#ff0000', color: palette.paper, padding:'2px 8px', borderRadius: 999, fontFamily:'"Bangers", system-ui', fontSize: 11, letterSpacing:'.08em', border:`2px solid ${palette.ink}` }}>▶ PLAY</div>
               </div>
               <div style={{ flex: 1, padding: '4px 4px 4px 0', display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
@@ -418,21 +423,33 @@ function PortfolioComic({ lang, onLangChange }) {
             const span = g.size === 'lg' ? { gridColumn:'span 2', gridRow:'span 2' } :
                          g.size === 'md' ? { gridColumn:'span 2', gridRow:'span 1' } : {};
             const isVid = g.kind === 'video';
+            const lbIdx = g.file_url ? galleryImages.indexOf(g) : -1;
+            const clickable = lbIdx >= 0;
             return (
-              <a key={i} href="#" className="c-panel c-card c-link" style={{
-                ...span,
-                background: `${g.bg} radial-gradient(circle, ${palette.ink}33 1.2px, transparent 1.3px) 0 0/10px 10px`,
-                display:'grid', placeItems:'center',
-                position:'relative', overflow:'hidden',
-              }}>
-                <div style={{ fontSize: g.size === 'lg' ? 120 : g.size === 'md' ? 88 : 64, filter:`drop-shadow(4px 4px 0 ${palette.ink})` }}>{g.emoji}</div>
+              <button
+                key={i}
+                type="button"
+                onClick={() => clickable && setLightbox(lbIdx)}
+                className="c-panel c-card"
+                style={{
+                  ...span,
+                  background: g.file_url ? '#000' : `${g.bg} radial-gradient(circle, ${palette.ink}33 1.2px, transparent 1.3px) 0 0/10px 10px`,
+                  display:'grid', placeItems:'center',
+                  position:'relative', overflow:'hidden',
+                  padding: 0, border: `4px solid ${palette.ink}`, fontFamily: 'inherit',
+                  cursor: clickable ? 'zoom-in' : 'default',
+                }}>
+                {g.file_url
+                  ? <img src={g.file_url} alt={L(g.label, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ fontSize: g.size === 'lg' ? 120 : g.size === 'md' ? 88 : 64, filter:`drop-shadow(4px 4px 0 ${palette.ink})` }}>{g.emoji}</div>
+                }
                 <div style={{
                   position:'absolute', top: 10, left: 10,
                   background: isVid ? '#ff0000' : palette.ink, color: palette.paper,
                   padding:'3px 10px', borderRadius: 999, border:`2.5px solid ${palette.ink}`,
                   fontFamily:'"Bangers", system-ui', fontSize: 11, letterSpacing:'.08em',
                 }}>{isVid ? '▶ VIDEO' : '★ PHOTO'}</div>
-                {isVid && (
+                {isVid && g.duration && (
                   <div style={{
                     position:'absolute', bottom: 8, right: 8,
                     background: palette.ink, color: palette.paper,
@@ -444,10 +461,11 @@ function PortfolioComic({ lang, onLangChange }) {
                   position:'absolute', bottom: 0, left: 0, right: 0,
                   background: `linear-gradient(transparent, ${palette.ink}ee)`,
                   color: palette.paper, padding:'24px 14px 12px',
+                  textAlign: 'left',
                 }}>
                   <div className="c-display" style={{ fontSize: g.size === 'lg' ? 24 : 16, lineHeight: 1.05 }}>{L(g.label, lang)}</div>
                 </div>
-              </a>
+              </button>
             );
           })}
         </div>
@@ -548,10 +566,12 @@ function PortfolioComic({ lang, onLangChange }) {
             {t("I'd love to hear from you 👋", 'อยากคุยกับเพื่อนๆ นะ 👋')}
           </div>
           <div style={{ marginTop: 32, display:'flex', flexWrap:'wrap', justifyContent:'center', gap: 12 }}>
-            {data.social.items.map((s) => (
-              <a key={s.label} href={s.href} className="c-btn" style={{ background: palette.paper }}>
-                <span className="c-mono" style={{ fontSize: 11, opacity: .7 }}>{s.label}</span>
-                · {L(s.value, lang)}
+            {data.social.items.map((s, i) => (
+              <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" className="c-btn" title={s.label} aria-label={s.label} style={{ background: palette.paper, gap: 10 }}>
+                {s._icon_resolved && (
+                  <img src={s._icon_resolved} alt="" style={{ width: 22, height: 22, display: 'block' }} />
+                )}
+                <span>{L(s.value, lang)}</span>
               </a>
             ))}
           </div>
@@ -563,6 +583,7 @@ function PortfolioComic({ lang, onLangChange }) {
       </section>
 
       <CertificateModal cert={cert} lang={lang} onClose={()=>setCert(null)} palette={palette} />
+      <GalleryLightbox items={galleryImages} index={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} lang={lang} />
     </div>
   );
 }
@@ -643,5 +664,59 @@ function LangToggleComic({ lang, onLangChange, palette }) {
   );
 }
 
+// Theme-agnostic gallery lightbox. ESC closes; ←/→ cycles through items
+// with file_url. Click outside the image to close.
+function GalleryLightbox({ items, index, onChange, onClose, lang }) {
+  React.useEffect(() => {
+    if (index === null || index === undefined) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowLeft') onChange((index - 1 + items.length) % items.length);
+      else if (e.key === 'ArrowRight') onChange((index + 1) % items.length);
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [index, items.length, onChange, onClose]);
+
+  if (index === null || index === undefined || !items[index]) return null;
+  const it = items[index];
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
+      zIndex: 1001, display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'cmFade .2s ease',
+    }}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }} style={lbBtn({ top: 16, right: 16, w: 40, fs: 18 })}>✕</button>
+      {items.length > 1 && (
+        <React.Fragment>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange((index - 1 + items.length) % items.length); }} style={lbBtn({ left: 16, w: 48, fs: 26 })} aria-label="Previous">‹</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange((index + 1) % items.length); }} style={lbBtn({ right: 16, w: 48, fs: 26 })} aria-label="Next">›</button>
+        </React.Fragment>
+      )}
+      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+        <img src={it.file_url} alt={typeof L === 'function' ? L(it.label, lang) : ''} style={{
+          maxWidth: '90vw', maxHeight: '78vh', objectFit: 'contain',
+          boxShadow: '0 20px 60px rgba(0,0,0,.5)',
+        }} />
+        <div style={{ color: '#fff', fontSize: 14, textAlign: 'center', maxWidth: '80vw' }}>
+          {typeof L === 'function' ? L(it.label, lang) : ''}
+          <span style={{ opacity: 0.55, marginLeft: 12 }}>{index + 1} / {items.length}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+function lbBtn({ top, left, right, w, fs }) {
+  return {
+    position: 'absolute', top: top != null ? top : '50%', left, right,
+    transform: top != null ? undefined : 'translateY(-50%)',
+    background: 'rgba(255,255,255,0.12)', color: '#fff',
+    border: 'none', width: w, height: w, borderRadius: '50%',
+    cursor: 'pointer', fontSize: fs, lineHeight: 1, fontFamily: 'system-ui',
+  };
+}
+
 window.PortfolioComic = PortfolioComic;
 window.ComicSpeechBubble = SpeechBubble;
+window.ComicGalleryLightbox = GalleryLightbox;

@@ -26,6 +26,16 @@ export function TextField({ label, value, onChange, placeholder, multiline, mono
   );
 }
 
+export function DateField({ label, value, onChange, hint }) {
+  return (
+    <label style={lbl}>
+      {label && <span>{label}</span>}
+      <input type="date" value={value || ''} onChange={(e) => onChange(e.target.value || null)} style={inp} />
+      {hint && <span style={{ color: '#64748b', fontSize: 11 }}>{hint}</span>}
+    </label>
+  );
+}
+
 export function NumberField({ label, value, onChange, min, max, step = 1 }) {
   return (
     <label style={lbl}>

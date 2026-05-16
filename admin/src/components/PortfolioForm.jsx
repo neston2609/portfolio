@@ -3,7 +3,7 @@
 // Multilang fields use the {en: "..."} shape so v2's Thai toggle plugs in later.
 
 import React from 'react';
-import { TextField, MultilangField, NumberField, ColorField, ArrayField, Section, Row, FileAttachField } from './fields.jsx';
+import { TextField, MultilangField, NumberField, ColorField, ArrayField, Section, Row, FileAttachField, DateField } from './fields.jsx';
 
 export default function PortfolioForm({ data, onChange, childId, portfolioUrl, api }) {
   // Helper: replace a top-level section with a patched copy.
@@ -19,7 +19,7 @@ export default function PortfolioForm({ data, onChange, childId, portfolioUrl, a
       <Section title="Hero / meta" defaultOpen>
         <Row cols={2}>
           <MultilangField label="Role / tagline" value={meta.role} onChange={(v) => setMeta({ role: v })} placeholder="Tiny Explorer" />
-          <NumberField label="Age" value={meta.age} onChange={(v) => setMeta({ age: v })} min={1} max={120} />
+          <DateField label="Date of Birth (age is calculated for the portfolio)" value={meta.dob} onChange={(v) => setMeta({ dob: v, age: undefined })} hint={meta.dob ? `currently ${ageFromDob(meta.dob)} years old` : 'YYYY-MM-DD'} />
           <MultilangField label="Grade" value={meta.grade} onChange={(v) => setMeta({ grade: v })} placeholder="Grade 6" />
           <MultilangField label="School (display)" value={meta.school} onChange={(v) => setMeta({ school: v })} />
           <MultilangField label="Location" value={meta.location} onChange={(v) => setMeta({ location: v })} placeholder="Bangkok" />
@@ -37,11 +37,11 @@ export default function PortfolioForm({ data, onChange, childId, portfolioUrl, a
       <ProjectsEditor value={data.projects} onChange={setSection('projects')} />
       <YoutubeEditor value={data.youtube} onChange={setSection('youtube')} />
       <ScratchEditor value={data.scratch} onChange={setSection('scratch')} />
-      <GalleryEditor value={data.gallery} onChange={setSection('gallery')} />
+      <GalleryEditor value={data.gallery} onChange={setSection('gallery')} fileCtx={fileCtx} />
       <AchievementsEditor value={data.achievements} onChange={setSection('achievements')} />
       <AwardsEditor value={data.awards} onChange={setSection('awards')} fileCtx={fileCtx} />
       <CertificatesEditor value={data.certificates} onChange={setSection('certificates')} fileCtx={fileCtx} />
-      <SocialEditor value={data.social} onChange={setSection('social')} />
+      <SocialEditor value={data.social} onChange={setSection('social')} fileCtx={fileCtx} />
     </div>
   );
 }
@@ -153,28 +153,38 @@ function YoutubeEditor({ value, onChange }) {
   const channel = v.channel || {};
   const setChannel = (patch) => onChange({ ...v, channel: { ...channel, ...patch } });
   return (
-    <Section title="YouTube" badge={(v.items || []).length + ' videos'}>
+    <Section title="YouTube" badge={(v.items || []).length + ' videos (manual fallback)'}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="My YouTube Channel" />
+
+      <div style={{ padding: 12, border: '1px solid #14532d', borderRadius: 8, background: '#052e16', color: '#bbf7d0', fontSize: 13 }}>
+        <strong>Live mode:</strong> when <code>YOUTUBE_API_KEY</code> is set in <code>.env</code> and the channel <em>handle</em> below is filled,
+        the portfolio renders the channel's <strong>live subscriber count, total views, and the most recent videos</strong> (with thumbnails) — refreshed every 10 minutes.
+        The manual stats and video list below are only used as a fallback (or when no API key is configured).
+      </div>
+
       <div style={{ padding: 12, border: '1px dashed #334155', borderRadius: 8, background: '#0b1220', display: 'grid', gap: 10 }}>
-        <div style={{ fontSize: 12, color: '#cbd5e1' }}>Channel</div>
+        <div style={{ fontSize: 12, color: '#cbd5e1' }}>Channel · only Handle + Max videos are needed for live mode</div>
         <Row cols={2}>
-          <MultilangField label="Name" value={channel.name} onChange={(x) => setChannel({ name: x })} placeholder="Kong Adventures" />
-          <TextField label="Handle" value={channel.handle} onChange={(x) => setChannel({ handle: x })} placeholder="@kong-adventures" />
+          <TextField label="Handle (e.g. @kong-adventures) — required for live mode" value={channel.handle} onChange={(x) => setChannel({ handle: x })} placeholder="@kong-adventures" />
+          <NumberField label="Max videos to show" value={v.max_videos} onChange={(x) => onChange({ ...v, max_videos: x })} min={1} max={20} />
         </Row>
-        <MultilangField label="Tagline" value={channel.tagline} onChange={(x) => setChannel({ tagline: x })} />
-        <Row cols={4}>
-          <TextField label="Subscribers" value={channel.subs} onChange={(x) => setChannel({ subs: x })} placeholder="1.2K" />
-          <NumberField label="Videos" value={channel.videos} onChange={(x) => setChannel({ videos: x })} />
-          <TextField label="Total views" value={channel.views} onChange={(x) => setChannel({ views: x })} placeholder="38K" />
-          <TextField label="URL" value={channel.url} onChange={(x) => setChannel({ url: x })} placeholder="https://youtube.com/@..." />
+        <Row cols={2}>
+          <MultilangField label="Name (override live)" value={channel.name} onChange={(x) => setChannel({ name: x })} placeholder="Kong Adventures" />
+          <TextField label="URL (override live)" value={channel.url} onChange={(x) => setChannel({ url: x })} placeholder="https://youtube.com/@..." />
+        </Row>
+        <MultilangField label="Tagline (override live)" value={channel.tagline} onChange={(x) => setChannel({ tagline: x })} />
+        <Row cols={3}>
+          <TextField label="Subs (fallback only)" value={channel.subs} onChange={(x) => setChannel({ subs: x })} placeholder="1.2K" />
+          <NumberField label="Videos (fallback only)" value={channel.videos} onChange={(x) => setChannel({ videos: x })} />
+          <TextField label="Views (fallback only)" value={channel.views} onChange={(x) => setChannel({ views: x })} placeholder="38K" />
         </Row>
       </div>
       <ArrayField
-        label="Videos"
+        label="Videos (fallback list — used only when live fetch is disabled or fails)"
         items={v.items}
         onChange={(x) => onChange({ ...v, items: x })}
         itemLabel="video"
-        defaultItem={() => ({ title: { en: '' }, kind: { en: '' }, duration: '0:00', views: '0', date: '', emoji: '🎬', bg: '#3b82f6' })}
+        defaultItem={() => ({ title: { en: '' }, kind: { en: '' }, duration: '0:00', views: '0', date: '', emoji: '🎬', bg: '#3b82f6', url: '' })}
         renderItem={(it, update) => (
           <>
             <MultilangField label="Title" value={it.title} onChange={(x) => update({ title: x })} />
@@ -188,6 +198,7 @@ function YoutubeEditor({ value, onChange }) {
               <TextField label="Emoji" value={it.emoji} onChange={(x) => update({ emoji: x })} />
               <ColorField label="Card color" value={it.bg} onChange={(x) => update({ bg: x })} />
             </Row>
+            <TextField label="Video URL" value={it.url} onChange={(x) => update({ url: x })} placeholder="https://youtube.com/watch?v=..." />
           </>
         )}
       />
@@ -238,7 +249,7 @@ function ScratchEditor({ value, onChange }) {
   );
 }
 
-function GalleryEditor({ value, onChange }) {
+function GalleryEditor({ value, onChange, fileCtx }) {
   const v = value || {};
   return (
     <Section title="Gallery" badge={(v.items || []).length + ' tiles'}>
@@ -249,18 +260,25 @@ function GalleryEditor({ value, onChange }) {
         items={v.items}
         onChange={(x) => onChange({ ...v, items: x })}
         itemLabel="tile"
-        defaultItem={() => ({ kind: 'photo', size: 'sm', label: { en: '' }, emoji: '📷', bg: '#3b82f6' })}
+        defaultItem={() => ({ kind: 'photo', size: 'sm', label: { en: '' }, emoji: '📷', bg: '#3b82f6', file_url: '' })}
         renderItem={(it, update) => (
           <>
             <MultilangField label="Label" value={it.label} onChange={(x) => update({ label: x })} />
             <Row cols={4}>
               <Select label="Kind" value={it.kind} onChange={(x) => update({ kind: x })} options={[['photo', 'Photo'], ['video', 'Video']]} />
               <Select label="Size" value={it.size} onChange={(x) => update({ size: x })} options={[['sm', 'Small'], ['md', 'Medium (2×1)'], ['lg', 'Large (2×2)']]} />
-              <TextField label="Emoji" value={it.emoji} onChange={(x) => update({ emoji: x })} />
+              <TextField label="Emoji (fallback when no image)" value={it.emoji} onChange={(x) => update({ emoji: x })} />
               <ColorField label="Tile color" value={it.bg} onChange={(x) => update({ bg: x })} />
             </Row>
             {it.kind === 'video' &&
               <TextField label="Video duration (mm:ss)" value={it.duration} onChange={(x) => update({ duration: x })} placeholder="0:48" />}
+            <FileAttachField
+              label="Tile image (shown on the tile + in the lightbox when clicked)"
+              value={it.file_url}
+              onChange={(url) => update({ file_url: url })}
+              accept="image/*"
+              {...fileCtx}
+            />
           </>
         )}
       />
@@ -365,23 +383,41 @@ function CertificatesEditor({ value, onChange, fileCtx }) {
   );
 }
 
-function SocialEditor({ value, onChange }) {
+function SocialEditor({ value, onChange, fileCtx }) {
   const v = value || {};
   return (
     <Section title="Social / Contact" badge={(v.items || []).length + ' links'}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Send me a message" />
+      <p style={{ color: '#94a3b8', fontSize: 12, margin: 0 }}>
+        Themes show an icon instead of the label. Built-in icons are auto-picked for YouTube, Facebook, Instagram,
+        X/Twitter, TikTok, Discord, Email, Phone, GitHub, LinkedIn, School. Set <strong>Platform</strong> to override
+        the detection, or upload a custom icon.
+      </p>
       <ArrayField
         items={v.items}
         onChange={(x) => onChange({ ...v, items: x })}
         itemLabel="link"
-        defaultItem={() => ({ label: '', value: '', href: '' })}
+        defaultItem={() => ({ label: '', value: '', href: '', platform: '', icon_url: '' })}
         renderItem={(it, update) => (
-          <Row cols={3}>
-            <TextField label="Label" value={it.label} onChange={(x) => update({ label: x })} placeholder="Email" />
-            <TextField label="Display value" value={typeof it.value === 'string' ? it.value : (it.value?.en || '')}
-                       onChange={(x) => update({ value: x })} placeholder="me@example.com" />
-            <TextField label="URL (href)" value={it.href} onChange={(x) => update({ href: x })} placeholder="mailto:..." />
-          </Row>
+          <>
+            <Row cols={3}>
+              <TextField label="Label (tooltip)" value={it.label} onChange={(x) => update({ label: x })} placeholder="Email" />
+              <TextField label="Display value" value={typeof it.value === 'string' ? it.value : (it.value?.en || '')}
+                         onChange={(x) => update({ value: x })} placeholder="me@example.com" />
+              <TextField label="URL (href)" value={it.href} onChange={(x) => update({ href: x })} placeholder="mailto:..." />
+            </Row>
+            <Row cols={2}>
+              <Select label="Platform (auto if blank)" value={it.platform || ''} onChange={(x) => update({ platform: x })}
+                      options={[['', 'Auto-detect'], ['youtube','YouTube'], ['facebook','Facebook'], ['instagram','Instagram'], ['twitter','X / Twitter'], ['tiktok','TikTok'], ['discord','Discord'], ['email','Email'], ['phone','Phone'], ['github','GitHub'], ['linkedin','LinkedIn'], ['school','School'], ['link','Generic link']]} />
+              <FileAttachField
+                label="Custom icon (overrides platform default)"
+                value={it.icon_url}
+                onChange={(url) => update({ icon_url: url })}
+                accept="image/svg+xml,image/png,image/webp"
+                {...fileCtx}
+              />
+            </Row>
+          </>
         )}
       />
     </Section>
@@ -391,6 +427,19 @@ function SocialEditor({ value, onChange }) {
 // ---- helpers --------------------------------------------------------------
 
 import { lbl, inp } from './fields.jsx';
+
+// Mirror of the server-side calculator (src/routes/portfolio.js).
+function ageFromDob(dob) {
+  if (!dob) return null;
+  const m = String(dob).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const birth = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (isNaN(birth)) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  if (now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())) age--;
+  return age >= 0 ? age : null;
+}
 
 function Select({ label, value, onChange, options }) {
   return (

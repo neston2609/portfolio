@@ -9,9 +9,23 @@ const { renderTheme } = require('../themes/render');
 const children = require('../services/children');
 const portfolios = require('../services/portfolios');
 const media = require('../services/media');
+const socialIcons = require('../services/social-icons');
+const youtube = require('../services/youtube');
 const { wrapRouter } = require('../utils/async-handler');
 
 const router = wrapRouter(express.Router());
+
+// Built-in icon library. Public, cacheable. Themes reference these by
+// absolute path (/_assets/icons/<name>.svg) which is skipped by the
+// renderer's relative-path rewriter.
+router.get('/_assets/icons/:name', (req, res) => {
+  const base = req.params.name.replace(/\.svg$/, '');
+  const p = socialIcons.iconPath(base);
+  if (!p) return res.status(404).send('not found');
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.type('image/svg+xml');
+  fs.createReadStream(p).pipe(res);
+});
 
 // Serve a theme asset (jsx/js/css/img) under the current child's subdomain.
 // Path: /_theme-assets/<file>. We resolve under the child's assigned theme dir.
@@ -52,6 +66,16 @@ router.get('*', async (req, res) => {
   const v = await portfolios.getVisibility(child.id);
   const data = portfolios.applyVisibility(p ? p.data : {}, v);
 
+  // Enrich social items with a resolved icon URL so themes don't need any
+  // detection logic. Custom uploads (icon_url) win; otherwise we auto-pick
+  // a built-in by label/href; finally fall back to the generic link icon.
+  enrichSocialIcons(data);
+
+  // Replace the admin-typed YouTube channel + items with live API data when
+  // a handle and YOUTUBE_API_KEY are both present. Cache-backed in the
+  // service, so this is cheap on repeated renders.
+  await enrichYoutube(data);
+
   const childMeta = buildMeta(child, data);
   const html = renderTheme(theme, {
     portfolioData: data,
@@ -61,6 +85,32 @@ router.get('*', async (req, res) => {
   res.type('html').send(html);
 });
 
+async function enrichYoutube(data) {
+  if (!data.youtube || data.youtube.__hidden) return;
+  const handle = data.youtube.channel?.handle;
+  if (!handle) return;
+  const maxVideos = Math.max(1, Math.min(50, Number(data.youtube.max_videos || 4)));
+  const live = await youtube.fetchChannelData(handle, maxVideos);
+  if (!live) return; // API not configured or call failed — keep admin values
+  // Merge: live data wins for fields it provides, but admin-set title
+  // (e.g. localized section header) is preserved.
+  data.youtube = {
+    ...data.youtube,
+    channel: { ...(data.youtube.channel || {}), ...live.channel },
+    items: live.items,
+    _live: true,
+  };
+}
+
+function enrichSocialIcons(data) {
+  if (!data.social || !Array.isArray(data.social.items)) return;
+  data.social.items = data.social.items.map((it) => {
+    if (it.icon_url) return { ...it, _icon_resolved: it.icon_url };
+    const platform = it.platform || socialIcons.detectPlatform(it.label, it.href);
+    return { ...it, platform, _icon_resolved: `/_assets/icons/${platform}.svg` };
+  });
+}
+
 function buildMeta(child, data) {
   // Themes read PORTFOLIO_DATA.meta for nav/hero info.
   const passthrough = (data && data.meta) || {};
@@ -68,11 +118,15 @@ function buildMeta(child, data) {
   const avatar_url = child.avatar_media_id
     ? `/_media/${child.id}/${child.avatar_media_id}`
     : null;
+  // Age is computed from DOB if present. Otherwise fall back to a manually
+  // entered age in the data blob (legacy data from before DOB existed).
+  const computed_age = passthrough.dob ? ageFromDob(passthrough.dob) : null;
   return {
     name: passthrough.name || { en: `${child.firstname}${child.lastname ? ' ' + child.lastname : ''}` },
     nickname: passthrough.nickname || { en: child.nickname || child.firstname },
     role: passthrough.role,
-    age: passthrough.age,
+    dob: passthrough.dob,
+    age: computed_age != null ? computed_age : passthrough.age,
     grade: passthrough.grade,
     school: passthrough.school,
     location: passthrough.location,
@@ -83,6 +137,23 @@ function buildMeta(child, data) {
     email: passthrough.email,
     avatar_url,
   };
+}
+
+// Compute current age in whole years from a YYYY-MM-DD birthday.
+// Returns null for missing/unparseable input.
+function ageFromDob(dob) {
+  if (!dob || typeof dob !== 'string') return null;
+  const m = dob.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  const birth = new Date(Number(y), Number(mo) - 1, Number(d));
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const beforeBirthday = now.getMonth() < birth.getMonth()
+    || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
+  if (beforeBirthday) age--;
+  return age >= 0 ? age : null;
 }
 
 function guessType(p) {

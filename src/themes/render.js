@@ -48,7 +48,10 @@ function renderTheme(theme, { portfolioData, childMeta, assetBase }) {
   // breaking the in-page nav.
   html = rewriteRelativePaths(html, assetBase);
 
-  const injection = buildDataScript(portfolioData, childMeta);
+  const injection = [
+    buildDataScript(portfolioData, childMeta),
+    buildVisibilityCss(portfolioData),
+  ].join('\n');
 
   if (html.includes('<!--PORTFOLIO_DATA-->')) {
     html = html.replace('<!--PORTFOLIO_DATA-->', injection);
@@ -58,6 +61,23 @@ function renderTheme(theme, { portfolioData, childMeta, assetBase }) {
     html = injection + html;
   }
   return html;
+}
+
+// Hidden sections get a CSS rule that drops them via the section's stable id.
+// Data keys -> section ids in our 4 built-in themes (the design uses
+// `quests` for projects, `contact` for social).
+const SECTION_ID_BY_KEY = {
+  about: 'about', powers: 'powers', education: 'education',
+  projects: 'quests', youtube: 'youtube', scratch: 'scratch',
+  gallery: 'gallery', achievements: 'achievements', social: 'contact',
+};
+function buildVisibilityCss(data) {
+  const hidden = [];
+  for (const [k, id] of Object.entries(SECTION_ID_BY_KEY)) {
+    if (data && data[k] && data[k].__hidden) hidden.push('#' + id);
+  }
+  if (hidden.length === 0) return '';
+  return `<style>${hidden.join(', ')} { display: none !important; }</style>`;
 }
 
 // Rewrite relative src= and href= attributes to prepend assetBase.

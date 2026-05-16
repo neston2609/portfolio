@@ -48,18 +48,41 @@ async function setVisibility(childId, map) {
 }
 
 // Apply visibility to a portfolio blob before rendering. Sections marked
-// visible=false are stripped. section_key supports dot paths
-// (e.g. "social", "social.items[2]"). For v1 we support top-level section
-// hide only (the common case from the design).
+// visible=false get replaced with a safe stub (empty arrays / titles) AND
+// flagged with __hidden:true. Themes guard each <section> on __hidden so
+// hidden sections disappear entirely; the stub also keeps themes from
+// crashing on access (`data.about.title` etc.) if a guard is missed.
 function applyVisibility(data, visibility) {
   if (!visibility) return data;
   const out = { ...data };
   for (const [key, visible] of Object.entries(visibility)) {
     if (visible) continue;
     if (key.includes('.')) continue; // nested not supported in v1
-    delete out[key];
+    out[key] = stubFor(key);
   }
   return out;
+}
+
+// Section-shape stubs. Must include every nested field a theme might read.
+// Keeping these aligned with services/children.defaultPortfolioData is the
+// invariant: any new required field there needs a matching slot here.
+function stubFor(key) {
+  const empty = { en: '' };
+  const base = { __hidden: true, title: empty };
+  switch (key) {
+    case 'about':        return { ...base, intro: empty, favorites: [] };
+    case 'powers':       return { ...base, items: [] };
+    case 'education':    return { ...base, items: [] };
+    case 'projects':     return { ...base, items: [] };
+    case 'youtube':      return { ...base, channel: { name: empty, handle: '', tagline: empty, subs: '0', videos: 0, views: '0', url: '#' }, items: [] };
+    case 'scratch':      return { ...base, intro: empty, profile: { handle: '', followers: 0, projectsShared: 0, url: '#' }, items: [] };
+    case 'gallery':      return { ...base, intro: empty, items: [] };
+    case 'achievements': return base;
+    case 'awards':       return { ...base, items: [] };
+    case 'certificates': return { ...base, items: [], categories: [{ id: 'all', label: { en: 'All' } }] };
+    case 'social':       return { ...base, items: [] };
+    default:             return { ...base, items: [] };
+  }
 }
 
 module.exports = { getPortfolio, updatePortfolio, getVisibility, setVisibility, applyVisibility };

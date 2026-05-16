@@ -7,7 +7,9 @@ const { useState: useStateH, useMemo: useMemoH } = React;
 function PortfolioHero({ lang, onLangChange }) {
   const [cert, setCert] = useStateH(null);
   const [filter, setFilter] = useStateH('all');
+  const [lightbox, setLightbox] = useStateH(null);
   const data = PORTFOLIO_DATA;
+  const galleryImages = useMemoH(() => (data.gallery?.items || []).filter((g) => g.file_url), [data.gallery]);
 
   const palette = {
     bg: '#0b0f1e',
@@ -348,23 +350,26 @@ function PortfolioHero({ lang, onLangChange }) {
               ))}
             </div>
           </div>
-          <a href={data.youtube.channel.url} className="h-btn h-link" style={{ position:'relative', background:'#ff0000', color:'#fff', borderColor:'#ff0000' }}>
+          <a href={data.youtube.channel.url} target="_blank" rel="noopener noreferrer" className="h-btn h-link" style={{ position:'relative', background:'#ff0000', color:'#fff', borderColor:'#ff0000' }}>
             ▶ {t('SUBSCRIBE','ติดตาม')}
           </a>
         </div>
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 16 }}>
           {data.youtube.items.map((v, i) => (
-            <a key={i} href="#" className="h-card hover h-link" style={{ display:'grid', gridTemplateColumns:'auto 1fr', gap: 16, padding: 14 }}>
+            <a key={i} href={v.url || '#'} target={v.url ? '_blank' : undefined} rel={v.url ? 'noopener noreferrer' : undefined} className="h-card hover h-link" style={{ display:'grid', gridTemplateColumns:'auto 1fr', gap: 16, padding: 14 }}>
               <div style={{
                 width: 200, aspectRatio:'16/9',
-                background: `linear-gradient(135deg, ${v.bg}, ${v.bg}99)`,
+                background: v.thumbnail ? '#000' : `linear-gradient(135deg, ${v.bg}, ${v.bg}99)`,
                 borderRadius: 8, position:'relative',
                 display:'grid', placeItems:'center', overflow:'hidden',
                 border: `1px solid ${palette.line}`,
               }}>
-                <div style={{ fontSize: 50 }}>{v.emoji}</div>
-                <div style={{ position:'absolute', bottom: 6, right: 6, background:'rgba(0,0,0,.8)', color:'#fff', padding:'3px 7px', borderRadius: 4, fontFamily:'"JetBrains Mono"', fontSize: 10 }}>{v.duration}</div>
+                {v.thumbnail
+                  ? <img src={v.thumbnail} alt={L(v.title, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ fontSize: 50 }}>{v.emoji}</div>
+                }
+                {v.duration && <div style={{ position:'absolute', bottom: 6, right: 6, background:'rgba(0,0,0,.8)', color:'#fff', padding:'3px 7px', borderRadius: 4, fontFamily:'"JetBrains Mono"', fontSize: 10 }}>{v.duration}</div>}
                 <div style={{
                   position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
                   background:'rgba(0,0,0,.7)', color:'#fff', width: 44, height: 44, borderRadius:'50%',
@@ -462,16 +467,23 @@ function PortfolioHero({ lang, onLangChange }) {
             const span = g.size === 'lg' ? { gridColumn:'span 2', gridRow:'span 2' } :
                          g.size === 'md' ? { gridColumn:'span 2', gridRow:'span 1' } : {};
             const isVid = g.kind === 'video';
+            const lbIdx = g.file_url ? galleryImages.indexOf(g) : -1;
+            const clickable = lbIdx >= 0;
             return (
-              <a key={i} href="#" className="h-card hover h-shine h-link" style={{
+              <button key={i} type="button" onClick={() => clickable && setLightbox(lbIdx)} className="h-card hover h-shine" style={{
                 ...span,
-                background: `linear-gradient(135deg, ${g.bg}, ${g.bg}88), radial-gradient(circle at 30% 30%, ${palette.gold}22, transparent 60%)`,
+                background: g.file_url ? '#000' : `linear-gradient(135deg, ${g.bg}, ${g.bg}88), radial-gradient(circle at 30% 30%, ${palette.gold}22, transparent 60%)`,
                 position:'relative', overflow:'hidden',
                 display:'flex', flexDirection:'column', justifyContent:'flex-end',
+                padding: 0, border: 'none', fontFamily: 'inherit',
+                cursor: clickable ? 'zoom-in' : 'default',
               }}>
-                <div style={{ position:'absolute', inset: 0, display:'grid', placeItems:'center' }}>
-                  <div className={isVid ? 'h-float' : ''} style={{ fontSize: g.size === 'lg' ? 130 : g.size === 'md' ? 90 : 64, filter:`drop-shadow(0 8px 16px ${palette.ink}88)` }}>{g.emoji}</div>
-                </div>
+                {g.file_url
+                  ? <img src={g.file_url} alt={L(g.label, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ position:'absolute', inset: 0, display:'grid', placeItems:'center' }}>
+                      <div className={isVid ? 'h-float' : ''} style={{ fontSize: g.size === 'lg' ? 130 : g.size === 'md' ? 90 : 64, filter:`drop-shadow(0 8px 16px ${palette.ink}88)` }}>{g.emoji}</div>
+                    </div>
+                }
                 <div className="h-pixel" style={{
                   position:'absolute', top: 12, left: 12,
                   background: isVid ? '#ff0000' : 'rgba(0,0,0,.65)',
@@ -481,7 +493,7 @@ function PortfolioHero({ lang, onLangChange }) {
                 }}>{isVid ? '▶ VIDEO' : '★ PHOTO'}</div>
                 {isVid && (
                   <>
-                    <div className="h-pixel" style={{ position:'absolute', top: 12, right: 12, background:'rgba(0,0,0,.65)', color:'#fff', padding:'4px 9px', borderRadius: 4, fontSize: 9, backdropFilter:'blur(6px)' }}>{g.duration}</div>
+                    {g.duration && <div className="h-pixel" style={{ position:'absolute', top: 12, right: 12, background:'rgba(0,0,0,.65)', color:'#fff', padding:'4px 9px', borderRadius: 4, fontSize: 9, backdropFilter:'blur(6px)' }}>{g.duration}</div>}
                     <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width: 48, height: 48, background:'rgba(0,0,0,.6)', borderRadius:'50%', display:'grid', placeItems:'center', backdropFilter:'blur(6px)', border:`1px solid ${palette.gold}` }}>
                       <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
                     </div>
@@ -491,10 +503,11 @@ function PortfolioHero({ lang, onLangChange }) {
                   position:'relative', zIndex: 1,
                   background: `linear-gradient(transparent, rgba(0,0,0,.85))`,
                   color: '#fff', padding: '28px 16px 14px',
+                  textAlign: 'left',
                 }}>
                   <div className="h-display" style={{ fontSize: g.size === 'lg' ? 22 : 16, lineHeight: 1.1 }}>{L(g.label, lang)}</div>
                 </div>
-              </a>
+              </button>
             );
           })}
         </div>
@@ -628,17 +641,19 @@ function PortfolioHero({ lang, onLangChange }) {
             </div>
             <div style={{ marginTop: 36, display:'flex', flexWrap:'wrap', justifyContent:'center', gap: 12 }}>
               {data.social.items.map((s, i) => (
-                <a key={s.label} href={s.href} className="h-link" style={{
+                <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" className="h-link" title={s.label} aria-label={s.label} style={{
                   background:'rgba(255,255,255,.06)',
                   border:`1.5px solid ${palette.line}`,
-                  padding:'12px 22px', borderRadius: 999,
+                  padding:'10px 18px', borderRadius: 999,
                   display:'inline-flex', alignItems:'center', gap: 10,
                   fontSize: 14, transition: 'all .15s',
                 }}
                 onMouseEnter={(e)=>{e.currentTarget.style.borderColor = palette.gold; e.currentTarget.style.color = palette.gold;}}
                 onMouseLeave={(e)=>{e.currentTarget.style.borderColor = palette.line; e.currentTarget.style.color = palette.inkLight;}}
                 >
-                  <span className="h-pixel" style={{ fontSize: 10, letterSpacing:'.12em', opacity:.8 }}>{s.label}</span>
+                  {s._icon_resolved && (
+                    <img src={s._icon_resolved} alt="" style={{ width: 20, height: 20, display: 'block', filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
+                  )}
                   <span>{L(s.value, lang)}</span>
                 </a>
               ))}
@@ -652,6 +667,7 @@ function PortfolioHero({ lang, onLangChange }) {
       </section>
 
       <CertificateModal cert={cert} lang={lang} onClose={()=>setCert(null)} palette={{ ...palette, paper: palette.paper, ink: palette.ink, accent: palette.pink }} />
+      <GalleryLightbox items={galleryImages} index={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} lang={lang} />
     </div>
   );
 }
@@ -768,6 +784,46 @@ function LangToggleHero({ lang, onLangChange, palette }) {
           fontSize: 11, fontWeight: lang === l ? 700 : 400,
         }}>{l.toUpperCase()}</button>
       ))}
+    </div>
+  );
+}
+
+function GalleryLightbox({ items, index, onChange, onClose, lang }) {
+  React.useEffect(() => {
+    if (index === null || index === undefined) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowLeft') onChange((index - 1 + items.length) % items.length);
+      else if (e.key === 'ArrowRight') onChange((index + 1) % items.length);
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [index, items.length, onChange, onClose]);
+  if (index === null || index === undefined || !items[index]) return null;
+  const it = items[index];
+  const lbBtn = ({ top, left, right, w, fs }) => ({
+    position: 'absolute', top: top != null ? top : '50%', left, right,
+    transform: top != null ? undefined : 'translateY(-50%)',
+    background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none',
+    width: w, height: w, borderRadius: '50%', cursor: 'pointer', fontSize: fs, lineHeight: 1, fontFamily: 'system-ui',
+  });
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 1001, display: 'grid', placeItems: 'center', padding: 24 }}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }} style={lbBtn({ top: 16, right: 16, w: 40, fs: 18 })}>✕</button>
+      {items.length > 1 && (
+        <React.Fragment>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange((index - 1 + items.length) % items.length); }} style={lbBtn({ left: 16, w: 48, fs: 26 })}>‹</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange((index + 1) % items.length); }} style={lbBtn({ right: 16, w: 48, fs: 26 })}>›</button>
+        </React.Fragment>
+      )}
+      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+        <img src={it.file_url} alt={typeof L === 'function' ? L(it.label, lang) : ''} style={{ maxWidth: '90vw', maxHeight: '78vh', objectFit: 'contain', boxShadow: '0 20px 60px rgba(0,0,0,.5)' }} />
+        <div style={{ color: '#fff', fontSize: 14, textAlign: 'center' }}>
+          {typeof L === 'function' ? L(it.label, lang) : ''}
+          <span style={{ opacity: 0.55, marginLeft: 12 }}>{index + 1} / {items.length}</span>
+        </div>
+      </div>
     </div>
   );
 }

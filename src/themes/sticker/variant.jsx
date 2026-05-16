@@ -7,7 +7,9 @@ const { useState: useStateK, useMemo: useMemoK } = React;
 function PortfolioSticker({ lang, onLangChange }) {
   const [cert, setCert] = useStateK(null);
   const [filter, setFilter] = useStateK('all');
+  const [lightbox, setLightbox] = useStateK(null);
   const data = PORTFOLIO_DATA;
+  const galleryImages = useMemoK(() => (data.gallery?.items || []).filter((g) => g.file_url), [data.gallery]);
 
   const palette = {
     paper: '#fdf6e3',
@@ -354,7 +356,7 @@ function PortfolioSticker({ lang, onLangChange }) {
               <span>★ {data.youtube.channel.views} {t('views','วิว')}</span>
             </div>
           </div>
-          <a href={data.youtube.channel.url} className="k-btn k-link" style={{ background: '#fff', color: '#ff0000', transform:'rotate(3deg)' }}>
+          <a href={data.youtube.channel.url} target="_blank" rel="noopener noreferrer" className="k-btn k-link" style={{ background: '#fff', color: '#ff0000', transform:'rotate(3deg)' }}>
             ▶ {t('subscribe!','ติดตาม!')}
           </a>
         </div>
@@ -362,7 +364,7 @@ function PortfolioSticker({ lang, onLangChange }) {
         {/* Video stickers */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 24 }}>
           {data.youtube.items.map((v, i) => (
-            <a href="#" key={i} className="k-sticker k-link" style={{
+            <a href={v.url || '#'} target={v.url ? '_blank' : undefined} rel={v.url ? 'noopener noreferrer' : undefined} key={i} className="k-sticker k-link" style={{
               display:'grid', gridTemplateColumns:'auto 1fr', gap: 14, padding: 14,
               transform: `rotate(${tilt(i+5)}deg)`,
               alignItems:'stretch',
@@ -370,13 +372,16 @@ function PortfolioSticker({ lang, onLangChange }) {
               <div className="k-tape" style={{ top: -10, left: 16, background: '#ff0000' }} />
               <div style={{
                 width: 180, aspectRatio:'16/9',
-                background: v.bg,
+                background: v.thumbnail ? '#000' : v.bg,
                 border: `2px solid ${palette.ink}`, borderRadius: 8,
                 display:'grid', placeItems:'center',
-                position:'relative',
+                position:'relative', overflow:'hidden',
               }}>
-                <div style={{ fontSize: 50 }}>{v.emoji}</div>
-                <div style={{ position:'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,.75)', color: '#fff', padding:'2px 7px', borderRadius: 4, fontFamily:'"JetBrains Mono", monospace', fontSize: 10 }}>{v.duration}</div>
+                {v.thumbnail
+                  ? <img src={v.thumbnail} alt={L(v.title, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ fontSize: 50 }}>{v.emoji}</div>
+                }
+                {v.duration && <div style={{ position:'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,.75)', color: '#fff', padding:'2px 7px', borderRadius: 4, fontFamily:'"JetBrains Mono", monospace', fontSize: 10 }}>{v.duration}</div>}
                 <div style={{
                   position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
                   background: '#ff0000', color:'#fff',
@@ -477,14 +482,18 @@ function PortfolioSticker({ lang, onLangChange }) {
                          g.size === 'md' ? { gridColumn:'span 2', gridRow:'span 1' } : {};
             const isVid = g.kind === 'video';
             const tapeColor = [palette.pink, palette.yellow, palette.blue, palette.green][i % 4];
+            const lbIdx = g.file_url ? galleryImages.indexOf(g) : -1;
+            const clickable = lbIdx >= 0;
             return (
-              <a key={i} href="#" className="k-sticker k-link" style={{
+              <button key={i} type="button" onClick={() => clickable && setLightbox(lbIdx)} className="k-sticker" style={{
                 ...span,
                 background: 'white',
                 padding: '10px 10px 14px',
                 transform: `rotate(${tilt(i+7)}deg)`,
                 overflow:'hidden',
                 display:'flex', flexDirection:'column',
+                border: 'none', fontFamily: 'inherit',
+                cursor: clickable ? 'zoom-in' : 'default',
               }}>
                 <div className="k-tape" style={{ top: -10, left: g.size==='sm' ? 18 : 40, background: tapeColor }} />
                 <div style={{
@@ -495,7 +504,10 @@ function PortfolioSticker({ lang, onLangChange }) {
                   display:'grid', placeItems:'center',
                   position:'relative', overflow:'hidden',
                 }}>
-                  <div style={{ fontSize: g.size === 'lg' ? 110 : g.size === 'md' ? 78 : 56 }}>{g.emoji}</div>
+                  {g.file_url
+                    ? <img src={g.file_url} alt={L(g.label, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                    : <div style={{ fontSize: g.size === 'lg' ? 110 : g.size === 'md' ? 78 : 56 }}>{g.emoji}</div>
+                  }
                   <div style={{
                     position:'absolute', top: 6, left: 6,
                     background: isVid ? '#ff0000' : palette.ink, color:'#fff',
@@ -504,7 +516,7 @@ function PortfolioSticker({ lang, onLangChange }) {
                   }}>{isVid ? '▶ video' : '★ photo'}</div>
                   {isVid && (
                     <>
-                      <div style={{ position:'absolute', bottom: 6, right: 6, background:'rgba(0,0,0,.7)', color:'#fff', padding:'2px 7px', borderRadius: 4, fontFamily:'"JetBrains Mono"', fontSize: 10 }}>{g.duration}</div>
+                      {g.duration && <div style={{ position:'absolute', bottom: 6, right: 6, background:'rgba(0,0,0,.7)', color:'#fff', padding:'2px 7px', borderRadius: 4, fontFamily:'"JetBrains Mono"', fontSize: 10 }}>{g.duration}</div>}
                       <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width: 40, height: 40, background:'#ff0000', borderRadius:'50%', border:`2px solid ${palette.ink}`, display:'grid', placeItems:'center', boxShadow:`2px 2px 0 ${palette.ink}` }}>
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
                       </div>
@@ -514,7 +526,7 @@ function PortfolioSticker({ lang, onLangChange }) {
                 <div className="k-marker" style={{ marginTop: 6, fontSize: 15, color: palette.ink, lineHeight: 1.2, textAlign:'center', minHeight: 18 }}>
                   {L(g.label, lang)}
                 </div>
-              </a>
+              </button>
             );
           })}
         </div>
@@ -621,11 +633,14 @@ function PortfolioSticker({ lang, onLangChange }) {
           </div>
           <div style={{ marginTop: 32, display:'flex', flexWrap:'wrap', justifyContent:'center', gap: 12 }}>
             {data.social.items.map((s, i) => (
-              <a key={s.label} href={s.href} className="k-btn k-link" style={{
+              <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" className="k-btn k-link" title={s.label} aria-label={s.label} style={{
                 background: ['#fff', palette.yellow, '#fff', palette.green][i % 4],
                 transform: `rotate(${tilt(i)}deg)`,
+                display: 'inline-flex', alignItems: 'center', gap: 10,
               }}>
-                <span className="k-marker" style={{ fontSize: 16, opacity: .6 }}>{s.label} →</span>
+                {s._icon_resolved && (
+                  <img src={s._icon_resolved} alt="" style={{ width: 22, height: 22, display: 'block' }} />
+                )}
                 <span style={{ fontSize: 18 }}>{L(s.value, lang)}</span>
               </a>
             ))}
@@ -638,6 +653,7 @@ function PortfolioSticker({ lang, onLangChange }) {
       </section>
 
       <CertificateModal cert={cert} lang={lang} onClose={()=>setCert(null)} palette={palette} />
+      <GalleryLightbox items={galleryImages} index={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} lang={lang} />
     </div>
   );
 }
@@ -703,6 +719,46 @@ function LangToggleSticker({ lang, onLangChange, palette }) {
           fontSize: 18, letterSpacing:'.05em',
         }}>{l.toUpperCase()}</button>
       ))}
+    </div>
+  );
+}
+
+function GalleryLightbox({ items, index, onChange, onClose, lang }) {
+  React.useEffect(() => {
+    if (index === null || index === undefined) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowLeft') onChange((index - 1 + items.length) % items.length);
+      else if (e.key === 'ArrowRight') onChange((index + 1) % items.length);
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [index, items.length, onChange, onClose]);
+  if (index === null || index === undefined || !items[index]) return null;
+  const it = items[index];
+  const lbBtn = ({ top, left, right, w, fs }) => ({
+    position: 'absolute', top: top != null ? top : '50%', left, right,
+    transform: top != null ? undefined : 'translateY(-50%)',
+    background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none',
+    width: w, height: w, borderRadius: '50%', cursor: 'pointer', fontSize: fs, lineHeight: 1, fontFamily: 'system-ui',
+  });
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 1001, display: 'grid', placeItems: 'center', padding: 24 }}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }} style={lbBtn({ top: 16, right: 16, w: 40, fs: 18 })}>✕</button>
+      {items.length > 1 && (
+        <React.Fragment>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange((index - 1 + items.length) % items.length); }} style={lbBtn({ left: 16, w: 48, fs: 26 })}>‹</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange((index + 1) % items.length); }} style={lbBtn({ right: 16, w: 48, fs: 26 })}>›</button>
+        </React.Fragment>
+      )}
+      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+        <img src={it.file_url} alt={typeof L === 'function' ? L(it.label, lang) : ''} style={{ maxWidth: '90vw', maxHeight: '78vh', objectFit: 'contain', boxShadow: '0 20px 60px rgba(0,0,0,.5)' }} />
+        <div style={{ color: '#fff', fontSize: 14, textAlign: 'center' }}>
+          {typeof L === 'function' ? L(it.label, lang) : ''}
+          <span style={{ opacity: 0.55, marginLeft: 12 }}>{index + 1} / {items.length}</span>
+        </div>
+      </div>
     </div>
   );
 }

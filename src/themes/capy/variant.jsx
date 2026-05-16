@@ -7,7 +7,9 @@ const { useState: useStateP, useMemo: useMemoP } = React;
 function PortfolioCapy({ lang, onLangChange }) {
   const [cert, setCert] = useStateP(null);
   const [filter, setFilter] = useStateP('all');
+  const [lightbox, setLightbox] = useStateP(null);
   const data = PORTFOLIO_DATA;
+  const galleryImages = useMemoP(() => (data.gallery?.items || []).filter((g) => g.file_url), [data.gallery]);
 
   const palette = {
     paper: '#f5ead4',          // warm cream
@@ -344,18 +346,21 @@ function PortfolioCapy({ lang, onLangChange }) {
               </div>
             ))}
           </div>
-          <a href={data.youtube.channel.url} className="p-btn yuzu p-link">▶ {t('subscribe','ติดตาม')}</a>
+          <a href={data.youtube.channel.url} target="_blank" rel="noopener noreferrer" className="p-btn yuzu p-link">▶ {t('subscribe','ติดตาม')}</a>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 16 }}>
           {data.youtube.items.map((v, i) => (
-            <a key={i} href="#" className="p-card hover p-link" style={{ padding: 14, display:'grid', gridTemplateColumns:'auto 1fr', gap: 16 }}>
+            <a key={i} href={v.url || '#'} target={v.url ? '_blank' : undefined} rel={v.url ? 'noopener noreferrer' : undefined} className="p-card hover p-link" style={{ padding: 14, display:'grid', gridTemplateColumns:'auto 1fr', gap: 16 }}>
               <div style={{
-                width: 180, aspectRatio:'16/9', background: v.bg,
+                width: 180, aspectRatio:'16/9', background: v.thumbnail ? '#000' : v.bg,
                 border:`2px solid ${palette.ink}`, borderRadius: 12,
                 display:'grid', placeItems:'center', position:'relative', overflow:'hidden',
               }}>
-                <div style={{ fontSize: 50 }}>{v.emoji}</div>
-                <div className="p-mono" style={{ position:'absolute', bottom: 6, right: 6, background:'rgba(0,0,0,.75)', color:'#fff', padding:'2px 7px', borderRadius: 4, fontSize: 10 }}>{v.duration}</div>
+                {v.thumbnail
+                  ? <img src={v.thumbnail} alt={L(v.title, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ fontSize: 50 }}>{v.emoji}</div>
+                }
+                {v.duration && <div className="p-mono" style={{ position:'absolute', bottom: 6, right: 6, background:'rgba(0,0,0,.75)', color:'#fff', padding:'2px 7px', borderRadius: 4, fontSize: 10 }}>{v.duration}</div>}
                 <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width: 42, height: 42, background:'#ff0000', borderRadius:'50%', border:`2px solid ${palette.ink}`, display:'grid', placeItems:'center', boxShadow:`2px 2px 0 ${palette.ink}` }}>
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
                 </div>
@@ -434,16 +439,22 @@ function PortfolioCapy({ lang, onLangChange }) {
             const span = g.size === 'lg' ? { gridColumn:'span 2', gridRow:'span 2' } :
                          g.size === 'md' ? { gridColumn:'span 2', gridRow:'span 1' } : {};
             const isVid = g.kind === 'video';
+            const lbIdx = g.file_url ? galleryImages.indexOf(g) : -1;
+            const clickable = lbIdx >= 0;
             return (
-              <a key={i} href="#" className="p-card hover p-link" style={{
+              <button key={i} type="button" onClick={() => clickable && setLightbox(lbIdx)} className="p-card hover" style={{
                 ...span, padding: 0, overflow:'hidden',
                 background: g.bg,
                 display:'flex', flexDirection:'column', justifyContent:'flex-end',
-                position:'relative',
+                position:'relative', border: 'none', fontFamily: 'inherit',
+                cursor: clickable ? 'zoom-in' : 'default',
               }}>
-                <div style={{ position:'absolute', inset: 0, display:'grid', placeItems:'center' }}>
-                  <div className={isVid ? 'p-float' : ''} style={{ fontSize: g.size === 'lg' ? 120 : g.size === 'md' ? 84 : 60 }}>{g.emoji}</div>
-                </div>
+                {g.file_url
+                  ? <img src={g.file_url} alt={L(g.label, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ position:'absolute', inset: 0, display:'grid', placeItems:'center' }}>
+                      <div className={isVid ? 'p-float' : ''} style={{ fontSize: g.size === 'lg' ? 120 : g.size === 'md' ? 84 : 60 }}>{g.emoji}</div>
+                    </div>
+                }
                 <div style={{
                   position:'absolute', top: 10, left: 10,
                   background: isVid ? '#ff0000' : '#fff8e8',
@@ -455,7 +466,7 @@ function PortfolioCapy({ lang, onLangChange }) {
                 }}>{isVid ? '▶ VIDEO' : '★ PHOTO'}</div>
                 {isVid && (
                   <>
-                    <div className="p-mono" style={{ position:'absolute', top: 10, right: 10, background:'rgba(0,0,0,.7)', color:'#fff', padding:'3px 8px', borderRadius: 4, fontSize: 10 }}>{g.duration}</div>
+                    {g.duration && <div className="p-mono" style={{ position:'absolute', top: 10, right: 10, background:'rgba(0,0,0,.7)', color:'#fff', padding:'3px 8px', borderRadius: 4, fontSize: 10 }}>{g.duration}</div>}
                     <div style={{
                       position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
                       width: 46, height: 46, background:'#ff0000', borderRadius:'50%',
@@ -470,10 +481,11 @@ function PortfolioCapy({ lang, onLangChange }) {
                   position:'relative', zIndex: 1,
                   background: `linear-gradient(transparent, ${palette.ink}ee)`,
                   color:'#fff8e8', padding:'28px 14px 12px',
+                  textAlign: 'left',
                 }}>
                   <div className="p-display" style={{ fontSize: g.size === 'lg' ? 22 : 14, lineHeight: 1.15 }}>{L(g.label, lang)}</div>
                 </div>
-              </a>
+              </button>
             );
           })}
         </div>
@@ -587,10 +599,12 @@ function PortfolioCapy({ lang, onLangChange }) {
             {t("Send a message and let's hang out by the hot spring!", 'ส่งข้อความหาฉัน แล้วมานั่งแช่บ่อน้ำร้อนด้วยกันนะ!')}
           </div>
           <div style={{ marginTop: 32, display:'flex', flexWrap:'wrap', justifyContent:'center', gap: 12 }}>
-            {data.social.items.map((s) => (
-              <a key={s.label} href={s.href} className="p-btn p-link" style={{ background:'#fff8e8', color: palette.ink }}>
-                <span className="p-mono" style={{ fontSize: 11, color: palette.brown, letterSpacing:'.1em' }}>{s.label}</span>
-                <span>· {L(s.value, lang)}</span>
+            {data.social.items.map((s, i) => (
+              <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" className="p-btn p-link" title={s.label} aria-label={s.label} style={{ background:'#fff8e8', color: palette.ink, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                {s._icon_resolved && (
+                  <img src={s._icon_resolved} alt="" style={{ width: 22, height: 22, display: 'block' }} />
+                )}
+                <span>{L(s.value, lang)}</span>
               </a>
             ))}
           </div>
@@ -602,6 +616,7 @@ function PortfolioCapy({ lang, onLangChange }) {
       </section>
 
       <CertificateModal cert={cert} lang={lang} onClose={()=>setCert(null)} palette={{ ...palette, paper: '#fff8e8', accent: palette.brown }} />
+      <GalleryLightbox items={galleryImages} index={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} lang={lang} />
     </div>
   );
 }
@@ -761,6 +776,46 @@ function LangToggleCapy({ lang, onLangChange, palette }) {
           fontWeight: 600, fontSize: 12, letterSpacing:'.05em',
         }}>{l.toUpperCase()}</button>
       ))}
+    </div>
+  );
+}
+
+function GalleryLightbox({ items, index, onChange, onClose, lang }) {
+  React.useEffect(() => {
+    if (index === null || index === undefined) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowLeft') onChange((index - 1 + items.length) % items.length);
+      else if (e.key === 'ArrowRight') onChange((index + 1) % items.length);
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [index, items.length, onChange, onClose]);
+  if (index === null || index === undefined || !items[index]) return null;
+  const it = items[index];
+  const lbBtn = ({ top, left, right, w, fs }) => ({
+    position: 'absolute', top: top != null ? top : '50%', left, right,
+    transform: top != null ? undefined : 'translateY(-50%)',
+    background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none',
+    width: w, height: w, borderRadius: '50%', cursor: 'pointer', fontSize: fs, lineHeight: 1, fontFamily: 'system-ui',
+  });
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 1001, display: 'grid', placeItems: 'center', padding: 24 }}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }} style={lbBtn({ top: 16, right: 16, w: 40, fs: 18 })}>✕</button>
+      {items.length > 1 && (
+        <React.Fragment>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange((index - 1 + items.length) % items.length); }} style={lbBtn({ left: 16, w: 48, fs: 26 })}>‹</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange((index + 1) % items.length); }} style={lbBtn({ right: 16, w: 48, fs: 26 })}>›</button>
+        </React.Fragment>
+      )}
+      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+        <img src={it.file_url} alt={typeof L === 'function' ? L(it.label, lang) : ''} style={{ maxWidth: '90vw', maxHeight: '78vh', objectFit: 'contain', boxShadow: '0 20px 60px rgba(0,0,0,.5)' }} />
+        <div style={{ color: '#fff', fontSize: 14, textAlign: 'center' }}>
+          {typeof L === 'function' ? L(it.label, lang) : ''}
+          <span style={{ opacity: 0.55, marginLeft: 12 }}>{index + 1} / {items.length}</span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -10,6 +10,7 @@ const config = {
   sessionCookieDomain: process.env.SESSION_COOKIE_DOMAIN || undefined,
   uploadDir: path.resolve(process.env.UPLOAD_DIR || './uploads'),
   maxUploadBytes: Number(process.env.MAX_UPLOAD_MB || 20) * 1024 * 1024,
+  youtubeApiKey: process.env.YOUTUBE_API_KEY || null,
   pg: {
     host: process.env.PGHOST,
     port: Number(process.env.PGPORT || 5432),
