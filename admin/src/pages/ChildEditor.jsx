@@ -194,7 +194,13 @@ export default function ChildEditor() {
         </div>
 
         {editMode === 'form' ? (
-          <PortfolioForm data={dataObj} onChange={setDataObj} />
+          <PortfolioForm
+            data={dataObj}
+            onChange={setDataObj}
+            childId={id}
+            portfolioUrl={portfolioUrl}
+            api={api}
+          />
         ) : (
           <>
             <p style={{ color: '#94a3b8', fontSize: 13, marginTop: 0 }}>

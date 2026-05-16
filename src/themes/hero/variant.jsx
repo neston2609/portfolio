@@ -525,6 +525,24 @@ function PortfolioHero({ lang, onLangChange }) {
                 }}>{L(a.rank, lang)}</div>
                 <div style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.3, color: palette.inkLight }}>{L(a.name, lang)}</div>
                 <div className="h-pixel" style={{ fontSize: 10, color: '#94a3b8', marginTop: 10, letterSpacing:'.1em' }}>· {a.year} ·</div>
+                {a.file_url && (
+                  /\.pdf(\?|$)/i.test(a.file_url) ? (
+                    <a href={a.file_url} target="_blank" rel="noopener noreferrer" className="h-link" style={{
+                      display:'inline-block', marginTop: 12,
+                      background: palette.gold, color: palette.ink,
+                      padding: '4px 14px', borderRadius: 999,
+                      fontFamily:'"Lilita One"', fontSize: 12, letterSpacing:'.06em',
+                      border: `2px solid ${palette.ink}`,
+                    }}>📄 {t('VIEW PDF','ดูเอกสาร')}</a>
+                  ) : (
+                    <a href={a.file_url} target="_blank" rel="noopener noreferrer" style={{ display:'block', marginTop: 12 }}>
+                      <img src={a.file_url} alt="" style={{
+                        width:'100%', maxHeight: 110, objectFit:'cover',
+                        border:`2px solid ${palette.gold}`, borderRadius: 6,
+                      }} />
+                    </a>
+                  )
+                )}
               </div>
             </div>
           ))}

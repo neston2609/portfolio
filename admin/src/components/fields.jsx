@@ -143,3 +143,79 @@ const iconBtn = {
 export function Row({ children, cols = 2 }) {
   return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 10 }}>{children}</div>;
 }
+
+// File attachment field: upload an image or PDF to the child's media library
+// and store the resulting URL on the parent item. The stored value is a
+// relative path like "/_media/<childId>/<mediaId>" so it works under any host.
+//
+// Props:
+//   value           current URL (string or '')
+//   onChange(url)   parent setter
+//   uploadUrl       endpoint to POST the file to (e.g. /children/<id>/media)
+//   previewBase     absolute origin to prefix when showing the preview from
+//                   the admin host (cross-origin OK; img tags don't need CORS)
+//   accept          MIME or extensions (defaults to 'image/*,application/pdf')
+export function FileAttachField({ label, value, onChange, uploadUrl, previewBase, accept, api }) {
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const isPdf = value && /\.pdf(\?|$)/i.test(value);
+  const isImg = value && /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(value);
+  const absUrl = value ? ((previewBase || '') + value) : null;
+
+  async function onPick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true); setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const m = await api.post(uploadUrl, fd);
+      onChange(m.url);
+      e.target.value = '';
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div style={lbl}>
+      {label && <span>{label}</span>}
+      <div style={{
+        display: 'flex', gap: 10, alignItems: 'center', padding: 8,
+        border: '1px dashed #334155', borderRadius: 6, background: '#0b1220',
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: 4, background: '#1f2937',
+          display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden',
+          color: '#64748b', fontSize: 10, textAlign: 'center',
+        }}>
+          {isImg ? (
+            <img src={absUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : isPdf ? (
+            <span style={{ fontSize: 20, color: '#fca5a5' }}>📄 PDF</span>
+          ) : (
+            <span>no file</span>
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {value
+            ? <code style={{ fontSize: 11, color: '#94a3b8', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</code>
+            : <span style={{ color: '#64748b', fontSize: 12 }}>No file attached.</span>}
+          {err && <div style={{ color: '#fca5a5', fontSize: 11, marginTop: 4 }}>{err}</div>}
+        </div>
+        <label style={{
+          background: '#334155', color: '#fffaf0', borderRadius: 4,
+          padding: '6px 10px', fontSize: 12, cursor: 'pointer', flexShrink: 0,
+        }}>
+          {busy ? 'Uploading…' : (value ? 'Replace' : 'Upload')}
+          <input type="file" accept={accept || 'image/*,application/pdf'} onChange={onPick} disabled={busy} style={{ display: 'none' }} />
+        </label>
+        {value && (
+          <button type="button" onClick={() => onChange('')} style={{
+            background: 'transparent', color: '#fca5a5', border: '1px solid #334155',
+            borderRadius: 4, padding: '6px 10px', fontSize: 12, cursor: 'pointer', flexShrink: 0,
+          }}>Remove</button>
+        )}
+      </div>
+    </div>
+  );
+}

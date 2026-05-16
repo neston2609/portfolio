@@ -469,6 +469,24 @@ function PortfolioComic({ lang, onLangChange }) {
               <div className="c-display" style={{ fontSize: 28, color: palette.red, marginBottom: 4 }}>{L(a.rank, lang)}</div>
               <div className="c-mono" style={{ fontSize: 12, marginBottom: 8 }}>{a.year}</div>
               <div className="c-hand" style={{ fontSize: 18, lineHeight: 1.3 }}>{L(a.name, lang)}</div>
+              {a.file_url && (
+                /\.pdf(\?|$)/i.test(a.file_url) ? (
+                  <a href={a.file_url} target="_blank" rel="noopener noreferrer" className="c-link" style={{
+                    display:'inline-block', marginTop: 12,
+                    background: palette.ink, color: palette.paper, padding:'4px 14px',
+                    borderRadius: 999, fontFamily:'"Bangers"', fontSize: 12, letterSpacing:'.08em',
+                    border: `3px solid ${palette.ink}`, boxShadow: `3px 3px 0 ${palette.red}`,
+                  }}>📄 {t('VIEW PDF','ดูเอกสาร')}</a>
+                ) : (
+                  <a href={a.file_url} target="_blank" rel="noopener noreferrer" style={{ display:'block', marginTop: 12 }}>
+                    <img src={a.file_url} alt="" style={{
+                      width:'100%', maxHeight: 140, objectFit:'cover',
+                      border:`3px solid ${palette.ink}`, borderRadius: 6,
+                      boxShadow:`4px 4px 0 ${palette.red}`,
+                    }} />
+                  </a>
+                )
+              )}
             </div>
           ))}
         </div>

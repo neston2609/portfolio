@@ -3,13 +3,15 @@
 // Multilang fields use the {en: "..."} shape so v2's Thai toggle plugs in later.
 
 import React from 'react';
-import { TextField, MultilangField, NumberField, ColorField, ArrayField, Section, Row } from './fields.jsx';
+import { TextField, MultilangField, NumberField, ColorField, ArrayField, Section, Row, FileAttachField } from './fields.jsx';
 
-export default function PortfolioForm({ data, onChange }) {
+export default function PortfolioForm({ data, onChange, childId, portfolioUrl, api }) {
   // Helper: replace a top-level section with a patched copy.
   const setSection = (key) => (next) => onChange({ ...data, [key]: next });
   const meta = data.meta || {};
   const setMeta = (patch) => onChange({ ...data, meta: { ...meta, ...patch } });
+  // Context used by per-item file-attach fields (certs/awards).
+  const fileCtx = { uploadUrl: `/children/${childId}/media`, previewBase: portfolioUrl, api };
 
   return (
     <div>
@@ -37,8 +39,8 @@ export default function PortfolioForm({ data, onChange }) {
       <ScratchEditor value={data.scratch} onChange={setSection('scratch')} />
       <GalleryEditor value={data.gallery} onChange={setSection('gallery')} />
       <AchievementsEditor value={data.achievements} onChange={setSection('achievements')} />
-      <AwardsEditor value={data.awards} onChange={setSection('awards')} />
-      <CertificatesEditor value={data.certificates} onChange={setSection('certificates')} />
+      <AwardsEditor value={data.awards} onChange={setSection('awards')} fileCtx={fileCtx} />
+      <CertificatesEditor value={data.certificates} onChange={setSection('certificates')} fileCtx={fileCtx} />
       <SocialEditor value={data.social} onChange={setSection('social')} />
     </div>
   );
@@ -275,7 +277,7 @@ function AchievementsEditor({ value, onChange }) {
   );
 }
 
-function AwardsEditor({ value, onChange }) {
+function AwardsEditor({ value, onChange, fileCtx }) {
   const v = value || {};
   return (
     <Section title="Awards / Trophies" badge={(v.items || []).length + ' awards'}>
@@ -284,7 +286,7 @@ function AwardsEditor({ value, onChange }) {
         items={v.items}
         onChange={(x) => onChange({ ...v, items: x })}
         itemLabel="award"
-        defaultItem={() => ({ year: String(new Date().getFullYear()), rank: { en: 'GOLD' }, medal: '🥇', name: { en: '' } })}
+        defaultItem={() => ({ year: String(new Date().getFullYear()), rank: { en: 'GOLD' }, medal: '🥇', name: { en: '' }, file_url: '' })}
         renderItem={(it, update) => (
           <>
             <Row cols={3}>
@@ -293,6 +295,12 @@ function AwardsEditor({ value, onChange }) {
               <TextField label="Medal emoji" value={it.medal} onChange={(x) => update({ medal: x })} placeholder="🥇" />
             </Row>
             <MultilangField label="Award name" value={it.name} onChange={(x) => update({ name: x })} />
+            <FileAttachField
+              label="Trophy photo / certificate (image or PDF)"
+              value={it.file_url}
+              onChange={(url) => update({ file_url: url })}
+              {...fileCtx}
+            />
           </>
         )}
       />
@@ -300,7 +308,7 @@ function AwardsEditor({ value, onChange }) {
   );
 }
 
-function CertificatesEditor({ value, onChange }) {
+function CertificatesEditor({ value, onChange, fileCtx }) {
   const v = value || {};
   return (
     <Section title="Certificates" badge={(v.items || []).length + ' certificates'}>
@@ -327,7 +335,7 @@ function CertificatesEditor({ value, onChange }) {
         items={v.items}
         onChange={(x) => onChange({ ...v, items: x })}
         itemLabel="certificate"
-        defaultItem={() => ({ id: 'cert-' + Math.random().toString(36).slice(2, 8), name: { en: '' }, issuer: { en: '' }, date: '', category: 'all', color: '#fde047' })}
+        defaultItem={() => ({ id: 'cert-' + Math.random().toString(36).slice(2, 8), name: { en: '' }, issuer: { en: '' }, date: '', category: 'all', color: '#fde047', file_url: '' })}
         renderItem={(it, update, i) => {
           const categories = v.categories || [];
           return (
@@ -343,6 +351,12 @@ function CertificatesEditor({ value, onChange }) {
                         options={categories.map((c) => [c.id, (c.label?.en || c.id)])} />
                 <ColorField label="Background color" value={it.color} onChange={(x) => update({ color: x })} />
               </Row>
+              <FileAttachField
+                label="Certificate scan / PDF (shown in the certificate modal)"
+                value={it.file_url}
+                onChange={(url) => update({ file_url: url })}
+                {...fileCtx}
+              />
             </>
           );
         }}

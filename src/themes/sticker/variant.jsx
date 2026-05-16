@@ -540,6 +540,27 @@ function PortfolioSticker({ lang, onLangChange }) {
               <div className="k-display" style={{ fontSize: 30, color: palette.ink }}>{L(a.rank, lang)}</div>
               <div className="k-mono" style={{ fontSize: 11, marginBottom: 8 }}>· {a.year} ·</div>
               <div className="k-hand" style={{ fontSize: 18, lineHeight: 1.35 }}>{L(a.name, lang)}</div>
+              {a.file_url && (
+                /\.pdf(\?|$)/i.test(a.file_url) ? (
+                  <a href={a.file_url} target="_blank" rel="noopener noreferrer" className="k-marker" style={{
+                    display:'inline-block', marginTop: 12,
+                    color: palette.ink, background: '#fff',
+                    border: `2px solid ${palette.ink}`, borderRadius: 999,
+                    padding: '4px 14px', fontSize: 18,
+                    transform:'rotate(-2deg)',
+                  }}>📄 {t('view PDF','ดูเอกสาร')}</a>
+                ) : (
+                  <a href={a.file_url} target="_blank" rel="noopener noreferrer" style={{
+                    display:'inline-block', marginTop: 12, padding: 6,
+                    background: '#fff', border:`2px solid ${palette.ink}`,
+                    transform:'rotate(-2deg)', boxShadow:`3px 3px 0 ${palette.ink}`,
+                  }}>
+                    <img src={a.file_url} alt="" style={{
+                      display:'block', width: 120, height: 80, objectFit:'cover',
+                    }} />
+                  </a>
+                )
+              )}
             </div>
           ))}
         </div>

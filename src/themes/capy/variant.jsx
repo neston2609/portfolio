@@ -495,6 +495,24 @@ function PortfolioCapy({ lang, onLangChange }) {
               <div className="p-display" style={{ fontSize: 26, color: palette.brownDark }}>{L(a.rank, lang)}</div>
               <div className="p-mono" style={{ fontSize: 11, marginBlock: 8, color: palette.brown }}>· {a.year} ·</div>
               <div className="p-round" style={{ fontSize: 16, lineHeight: 1.4 }}>{L(a.name, lang)}</div>
+              {a.file_url && (
+                /\.pdf(\?|$)/i.test(a.file_url) ? (
+                  <a href={a.file_url} target="_blank" rel="noopener noreferrer" className="p-link" style={{
+                    display:'inline-block', marginTop: 12,
+                    background: '#fff8e8', color: palette.brownDark,
+                    padding: '4px 14px', borderRadius: 999,
+                    fontFamily:'"Caveat Brush"', fontSize: 18,
+                    border: `2px solid ${palette.ink}`,
+                  }}>📄 {t('view PDF','ดูเอกสาร')}</a>
+                ) : (
+                  <a href={a.file_url} target="_blank" rel="noopener noreferrer" style={{ display:'block', marginTop: 12 }}>
+                    <img src={a.file_url} alt="" style={{
+                      width:'100%', maxHeight: 120, objectFit:'cover',
+                      borderRadius: 14, border:`2px solid ${palette.ink}`,
+                    }} />
+                  </a>
+                )
+              )}
             </div>
           ))}
         </div>

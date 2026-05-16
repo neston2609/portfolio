@@ -144,6 +144,11 @@ function CertificateModal({ cert, lang, onClose, palette }) {
           </div>
         </div>
 
+        {/* Attached scan / PDF — only renders when admin has uploaded a file */}
+        {cert.file_url && (
+          <AttachedFile url={cert.file_url} ink={ink} paper={paper} lang={lang} />
+        )}
+
         {/* Footer */}
         <div style={{
           padding: '14px 24px',
@@ -223,6 +228,46 @@ function Burst({ color, ink, style, text, fontSize = 14 }) {
           textAlign: 'center',
           lineHeight: 1,
         }}>{text}</div>
+      )}
+    </div>
+  );
+}
+
+// Renders a cert.file_url uploaded via the admin. Detects PDF vs image
+// from the URL extension. Image is shown inline; PDF gets a button to
+// open in a new tab (browsers handle the rendering).
+function AttachedFile({ url, ink, paper, lang }) {
+  const isPdf = /\.pdf(\?|$)/i.test(url);
+  const isImg = /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(url);
+  return (
+    <div style={{
+      padding: '20px 24px',
+      borderBottom: `4px solid ${ink}`,
+      background: paper,
+    }}>
+      <div style={{
+        fontFamily: '"JetBrains Mono", monospace', fontSize: 10,
+        letterSpacing: '.18em', textTransform: 'uppercase',
+        opacity: .65, marginBottom: 10,
+      }}>{lang === 'th' ? 'ใบจริง' : 'ORIGINAL DOCUMENT'}</div>
+      {isImg && (
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+          <img src={url} alt="" style={{
+            display: 'block', width: '100%', maxHeight: 420, objectFit: 'contain',
+            border: `3px solid ${ink}`, borderRadius: 4, background: '#fff',
+          }} />
+        </a>
+      )}
+      {!isImg && (
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          background: ink, color: paper, textDecoration: 'none',
+          padding: '10px 18px', borderRadius: 6,
+          fontFamily: '"Bangers", system-ui, sans-serif', fontSize: 16, letterSpacing: '.08em',
+          border: `3px solid ${ink}`, boxShadow: `4px 4px 0 ${paper}, 4px 4px 0 1px ${ink}`,
+        }}>
+          {isPdf ? '📄' : '↗'} {lang === 'th' ? 'เปิดเอกสาร' : 'OPEN DOCUMENT'}
+        </a>
       )}
     </div>
   );
