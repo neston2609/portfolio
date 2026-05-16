@@ -330,3 +330,14 @@ const inp = {
   background: '#0b1220', color: '#fffaf0', border: '1px solid #334155',
   borderRadius: 6, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit',
 };
+
+function ModeButton({ active, onClick, children }) {
+  return (
+    <button type="button" onClick={onClick} style={{
+      background: active ? '#fbbf24' : 'transparent',
+      color: active ? '#1a1a1a' : '#cbd5e1',
+      border: '1px solid ' + (active ? '#fbbf24' : '#334155'),
+      borderRadius: 6, padding: '6px 14px', fontSize: 13, cursor: 'pointer', fontWeight: 600,
+    }}>{children}</button>
+  );
+}
