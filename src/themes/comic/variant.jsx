@@ -384,15 +384,18 @@ function PortfolioComic({ lang, onLangChange }) {
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 16 }}>
           {data.scratch.items.map((s, i) => (
-            <a key={i} href="#" className="c-panel c-card c-link" style={{ display:'block', overflow:'hidden' }}>
+            <a key={s.id || i} href={s.url || '#'} target={s.url ? '_blank' : undefined} rel={s.url ? 'noopener noreferrer' : undefined} className="c-panel c-card c-link" style={{ display:'block', overflow:'hidden' }}>
               <div style={{
                 aspectRatio:'4/3',
-                background: s.bg,
+                background: s.thumbnail ? '#000' : s.bg,
                 borderBottom: `4px solid ${palette.ink}`,
                 display:'grid', placeItems:'center',
-                position:'relative',
+                position:'relative', overflow:'hidden',
               }}>
-                <div style={{ fontSize: 64, filter: `drop-shadow(3px 3px 0 ${palette.ink})` }}>{s.emoji}</div>
+                {s.thumbnail
+                  ? <img src={s.thumbnail} alt={L(s.title, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ fontSize: 64, filter: `drop-shadow(3px 3px 0 ${palette.ink})` }}>{s.emoji}</div>
+                }
                 <div style={{ position:'absolute', top: 8, left: 8, background: '#fb923c', color: palette.paper, padding:'3px 10px', borderRadius: 999, fontFamily:'"Bangers", system-ui', fontSize: 11, letterSpacing:'.08em', border:`2px solid ${palette.ink}` }}>★ SCRATCH</div>
               </div>
               <div style={{ padding: 14 }}>

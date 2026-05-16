@@ -438,19 +438,22 @@ function PortfolioSticker({ lang, onLangChange }) {
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 22 }}>
           {data.scratch.items.map((s, i) => (
-            <a href="#" key={i} className="k-sticker k-link" style={{
+            <a href={s.url || '#'} target={s.url ? '_blank' : undefined} rel={s.url ? 'noopener noreferrer' : undefined} key={s.id || i} className="k-sticker k-link" style={{
               overflow:'hidden',
               transform: `rotate(${tilt(i+6)}deg)`,
             }}>
               <div className="k-tape" style={{ top: -10, left: 30, background: '#fb923c' }} />
               <div style={{
                 aspectRatio:'4/3',
-                background: s.bg,
+                background: s.thumbnail ? '#000' : s.bg,
                 margin: '8px 8px 0',
                 border:`2px solid ${palette.ink}`, borderRadius: 10,
-                display:'grid', placeItems:'center', position:'relative',
+                display:'grid', placeItems:'center', position:'relative', overflow:'hidden',
               }}>
-                <div style={{ fontSize: 56 }}>{s.emoji}</div>
+                {s.thumbnail
+                  ? <img src={s.thumbnail} alt={L(s.title, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ fontSize: 56 }}>{s.emoji}</div>
+                }
                 <div style={{ position:'absolute', top: 6, left: 6, background: '#fb923c', color:'#fff', padding:'2px 8px', borderRadius: 999, fontFamily:'"Caveat Brush", cursive', fontSize: 13, border:`1.5px solid ${palette.ink}` }}>SCRATCH</div>
               </div>
               <div style={{ padding: '12px 16px 16px' }}>

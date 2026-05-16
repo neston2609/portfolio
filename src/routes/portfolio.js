@@ -11,6 +11,7 @@ const portfolios = require('../services/portfolios');
 const media = require('../services/media');
 const socialIcons = require('../services/social-icons');
 const youtube = require('../services/youtube');
+const scratch = require('../services/scratch');
 const { wrapRouter } = require('../utils/async-handler');
 
 const router = wrapRouter(express.Router());
@@ -71,10 +72,10 @@ router.get('*', async (req, res) => {
   // a built-in by label/href; finally fall back to the generic link icon.
   enrichSocialIcons(data);
 
-  // Replace the admin-typed YouTube channel + items with live API data when
-  // a handle and YOUTUBE_API_KEY are both present. Cache-backed in the
-  // service, so this is cheap on repeated renders.
-  await enrichYoutube(data);
+  // Live data sources. Both fall back transparently to admin-typed values
+  // when the handle is missing or the API call fails. Cached in the service
+  // so repeated renders are cheap. Run in parallel — they hit different hosts.
+  await Promise.all([enrichYoutube(data), enrichScratch(data)]);
 
   const childMeta = buildMeta(child, data);
   const html = renderTheme(theme, {
@@ -97,6 +98,23 @@ async function enrichYoutube(data) {
   data.youtube = {
     ...data.youtube,
     channel: { ...(data.youtube.channel || {}), ...live.channel },
+    items: live.items,
+    _live: true,
+  };
+}
+
+async function enrichScratch(data) {
+  if (!data.scratch || data.scratch.__hidden) return;
+  const handle = data.scratch.profile?.handle;
+  if (!handle) return;
+  const maxProjects = Math.max(1, Math.min(40, Number(data.scratch.max_projects || 4)));
+  const live = await scratch.fetchScratchData(handle, maxProjects);
+  if (!live) return;
+  // Merge: live values win for what the API returns; admin-typed values
+  // (like followers, which Scratch's public API doesn't expose) stick around.
+  data.scratch = {
+    ...data.scratch,
+    profile: { ...(data.scratch.profile || {}), ...live.profile },
     items: live.items,
     _live: true,
   };

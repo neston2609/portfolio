@@ -211,24 +211,33 @@ function ScratchEditor({ value, onChange }) {
   const profile = v.profile || {};
   const setProfile = (patch) => onChange({ ...v, profile: { ...profile, ...patch } });
   return (
-    <Section title="Scratch" badge={(v.items || []).length + ' projects'}>
+    <Section title="Scratch" badge={(v.items || []).length + ' projects (manual fallback)'}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="My Scratch Projects" />
       <MultilangField label="Intro paragraph" value={v.intro} onChange={(x) => onChange({ ...v, intro: x })} multiline />
+
+      <div style={{ padding: 12, border: '1px solid #14532d', borderRadius: 8, background: '#052e16', color: '#bbf7d0', fontSize: 13 }}>
+        <strong>Live mode:</strong> just set the Scratch <em>username</em> below and how many projects to show. The portfolio
+        pulls each project's <strong>title, thumbnail, views, loves, favorites, remixes</strong> live from <code>api.scratch.mit.edu</code>
+        (no API key needed) and links every card to the real Scratch project page. Refreshes every 10 minutes.
+      </div>
+
       <div style={{ padding: 12, border: '1px dashed #334155', borderRadius: 8, background: '#0b1220', display: 'grid', gap: 10 }}>
-        <div style={{ fontSize: 12, color: '#cbd5e1' }}>Profile</div>
-        <Row cols={4}>
-          <TextField label="Handle" value={profile.handle} onChange={(x) => setProfile({ handle: x })} placeholder="kong-coder" />
-          <NumberField label="Followers" value={profile.followers} onChange={(x) => setProfile({ followers: x })} />
-          <NumberField label="Projects shared" value={profile.projectsShared} onChange={(x) => setProfile({ projectsShared: x })} />
-          <TextField label="URL" value={profile.url} onChange={(x) => setProfile({ url: x })} />
+        <div style={{ fontSize: 12, color: '#cbd5e1' }}>Profile · only Handle + Max projects are needed for live mode</div>
+        <Row cols={2}>
+          <TextField label="Handle (Scratch username) — required for live mode" value={profile.handle} onChange={(x) => setProfile({ handle: x })} placeholder="kong-coder" />
+          <NumberField label="Max projects to show" value={v.max_projects} onChange={(x) => onChange({ ...v, max_projects: x })} min={1} max={40} />
+        </Row>
+        <Row cols={2}>
+          <NumberField label="Followers (fallback only — Scratch's public API doesn't expose this)" value={profile.followers} onChange={(x) => setProfile({ followers: x })} />
+          <TextField label="URL (overrides live)" value={profile.url} onChange={(x) => setProfile({ url: x })} />
         </Row>
       </div>
       <ArrayField
-        label="Projects"
+        label="Projects (fallback list — used only when live fetch is disabled or fails)"
         items={v.items}
         onChange={(x) => onChange({ ...v, items: x })}
         itemLabel="scratch project"
-        defaultItem={() => ({ title: { en: '' }, kind: { en: '' }, plays: '0', loves: 0, blocks: 0, emoji: '🎮', bg: '#312e81' })}
+        defaultItem={() => ({ title: { en: '' }, kind: { en: '' }, plays: '0', loves: 0, blocks: 0, emoji: '🎮', bg: '#312e81', url: '' })}
         renderItem={(it, update) => (
           <>
             <MultilangField label="Title" value={it.title} onChange={(x) => update({ title: x })} />
@@ -242,6 +251,7 @@ function ScratchEditor({ value, onChange }) {
               <TextField label="Emoji" value={it.emoji} onChange={(x) => update({ emoji: x })} />
               <ColorField label="Card color" value={it.bg} onChange={(x) => update({ bg: x })} />
             </Row>
+            <TextField label="Project URL" value={it.url} onChange={(x) => update({ url: x })} placeholder="https://scratch.mit.edu/projects/..." />
           </>
         )}
       />

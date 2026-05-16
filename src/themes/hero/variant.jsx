@@ -428,15 +428,19 @@ function PortfolioHero({ lang, onLangChange }) {
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 16 }}>
           {data.scratch.items.map((s, i) => (
-            <a key={i} href="#" className="h-card hover h-link" style={{ overflow:'hidden' }}>
+            <a key={s.id || i} href={s.url || '#'} target={s.url ? '_blank' : undefined} rel={s.url ? 'noopener noreferrer' : undefined} className="h-card hover h-link" style={{ overflow:'hidden' }}>
               <div style={{
                 aspectRatio:'4/3',
-                background: `linear-gradient(135deg, ${s.bg}, ${s.bg}88)`,
+                background: s.thumbnail ? '#000' : `linear-gradient(135deg, ${s.bg}, ${s.bg}88)`,
                 position:'relative',
                 display:'grid', placeItems:'center',
                 borderBottom: `1px solid ${palette.line}`,
+                overflow:'hidden',
               }}>
-                <div className="h-float" style={{ fontSize: 60 }}>{s.emoji}</div>
+                {s.thumbnail
+                  ? <img src={s.thumbnail} alt={L(s.title, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div className="h-float" style={{ fontSize: 60 }}>{s.emoji}</div>
+                }
                 <div className="h-pixel" style={{ position:'absolute', top: 10, left: 10, background:'rgba(0,0,0,.6)', color:'#fb923c', padding:'3px 8px', borderRadius: 4, fontSize: 9, letterSpacing:'.1em' }}>SCRATCH</div>
               </div>
               <div style={{ padding: 16 }}>

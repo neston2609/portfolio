@@ -400,13 +400,17 @@ function PortfolioCapy({ lang, onLangChange }) {
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 16 }}>
           {data.scratch.items.map((s, i) => (
-            <a key={i} href="#" className="p-card hover p-link" style={{ padding: 0, overflow:'hidden' }}>
+            <a key={s.id || i} href={s.url || '#'} target={s.url ? '_blank' : undefined} rel={s.url ? 'noopener noreferrer' : undefined} className="p-card hover p-link" style={{ padding: 0, overflow:'hidden' }}>
               <div style={{
-                aspectRatio:'4/3', background: s.bg,
+                aspectRatio:'4/3', background: s.thumbnail ? '#000' : s.bg,
                 display:'grid', placeItems:'center', position:'relative',
                 borderBottom:`2px solid ${palette.ink}`,
+                overflow:'hidden',
               }}>
-                <div className="p-float" style={{ fontSize: 56 }}>{s.emoji}</div>
+                {s.thumbnail
+                  ? <img src={s.thumbnail} alt={L(s.title, lang)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div className="p-float" style={{ fontSize: 56 }}>{s.emoji}</div>
+                }
                 <div style={{ position:'absolute', top: 8, left: 8, background:'#fb923c', color:'#fff', padding:'2px 9px', borderRadius: 999, fontFamily:'"Fredoka"', fontWeight: 600, fontSize: 11, border:`2px solid ${palette.ink}` }}>★ SCRATCH</div>
               </div>
               <div style={{ padding: 14 }}>
