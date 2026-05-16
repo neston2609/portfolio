@@ -90,10 +90,12 @@ function PortfolioSticker({ lang, onLangChange }) {
               background: palette.pink, color: palette.ink,
               width: 38, height: 38, borderRadius: '50%',
               border: `2px solid ${palette.ink}`,
-              display:'grid', placeItems:'center',
+              display:'grid', placeItems:'center', overflow:'hidden',
               fontFamily:'"Caveat Brush", cursive', fontSize: 22,
               boxShadow:`2px 2px 0 ${palette.ink}`, transform: 'rotate(-6deg)',
-            }}>{L(data.meta.nickname, lang).charAt(0)}</span>
+            }}>{data.meta.avatar_url
+              ? <img src={data.meta.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : L(data.meta.nickname, lang).charAt(0)}</span>
             <span className="k-display" style={{ fontSize: 28, transform:'rotate(-1.5deg)' }}>{L(data.meta.name, lang)}</span>
           </a>
           <div style={{ display:'flex', gap: 4, alignItems:'center' }}>
@@ -148,12 +150,16 @@ function PortfolioSticker({ lang, onLangChange }) {
             <div className="k-tape" style={{ top: -12, left: 60, transform:'rotate(-6deg)', background: palette.pink }} />
             <div style={{
               aspectRatio: '1', background: `${palette.blue} radial-gradient(circle, ${palette.ink}22 1px, transparent 1.2px) 0 0/10px 10px`,
-              display:'grid', placeItems:'center',
+              display:'grid', placeItems:'center', overflow:'hidden',
               border: `2px solid ${palette.ink}`,
             }}>
-              <div className="k-display" style={{ fontSize: 60, color: palette.ink, textShadow:`2px 2px 0 white` }}>
-                {L(data.meta.nickname, lang).charAt(0)}
-              </div>
+              {data.meta.avatar_url ? (
+                <img src={data.meta.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div className="k-display" style={{ fontSize: 60, color: palette.ink, textShadow:`2px 2px 0 white` }}>
+                  {L(data.meta.nickname, lang).charAt(0)}
+                </div>
+              )}
             </div>
             <div className="k-marker" style={{ textAlign:'center', marginTop: 8, fontSize: 20 }}>
               ← {t('that\'s me!', 'นี่ฉันเอง!')}

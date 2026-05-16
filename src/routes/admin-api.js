@@ -155,6 +155,28 @@ router.delete('/children/:id/media/:mediaId', async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Avatar (the child's main profile photo) -----------------------------
+// Uploads a file as media AND sets it as the child's avatar in one call.
+// Image-only — the themes treat it as <img> in the hero/nav.
+router.post('/children/:id/avatar', upload.single('file'), async (req, res) => {
+  const c = await children.getChildById(req.params.id);
+  if (!c) return res.status(404).json({ error: 'not found' });
+  if (!req.file) return res.status(400).json({ error: 'file required' });
+  if (!req.file.mimetype.startsWith('image/')) {
+    return res.status(400).json({ error: 'avatar must be an image' });
+  }
+  const m = await media.storeMedia(c.id, req.file, req.body.alt || 'avatar');
+  const updated = await children.updateChild(c.id, { avatar_media_id: m.id });
+  res.status(201).json({ child: updated, media: m });
+});
+
+router.delete('/children/:id/avatar', async (req, res) => {
+  const c = await children.getChildById(req.params.id);
+  if (!c) return res.status(404).json({ error: 'not found' });
+  const updated = await children.updateChild(c.id, { avatar_media_id: null });
+  res.json({ child: updated });
+});
+
 // --- Themes --------------------------------------------------------------
 
 router.get('/themes', async (_req, res) => {

@@ -50,7 +50,7 @@ async function createChild({ firstname_slug, firstname, lastname, nickname, them
 }
 
 async function updateChild(id, patch) {
-  const allowed = ['firstname_slug', 'firstname', 'lastname', 'nickname', 'theme_slug', 'is_published'];
+  const allowed = ['firstname_slug', 'firstname', 'lastname', 'nickname', 'theme_slug', 'is_published', 'avatar_media_id'];
   const sets = [];
   const vals = [];
   let i = 1;

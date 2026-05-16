@@ -86,10 +86,12 @@ function PortfolioComic({ lang, onLangChange }) {
               background: palette.red, color: palette.paper,
               width: 36, height: 36, borderRadius: '50%',
               border: `3px solid ${palette.ink}`,
-              display: 'grid', placeItems: 'center',
+              display: 'grid', placeItems: 'center', overflow: 'hidden',
               fontFamily: '"Bangers", system-ui', fontSize: 18,
               boxShadow: `3px 3px 0 ${palette.ink}`,
-            }}>{L(data.meta.nickname, lang).charAt(0)}</span>
+            }}>{data.meta.avatar_url
+              ? <img src={data.meta.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : L(data.meta.nickname, lang).charAt(0)}</span>
             <span className="c-display" style={{ fontSize: 22 }}>{L(data.meta.name, lang)}</span>
           </a>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -149,10 +151,14 @@ function PortfolioComic({ lang, onLangChange }) {
               background: `${palette.blue} radial-gradient(circle, ${palette.ink}44 1.2px, transparent 1.3px) 0 0/8px 8px`,
               display: 'grid', placeItems: 'center', position:'relative', overflow:'hidden',
             }}>
-              <div className="c-display" style={{ fontSize: 80, color: palette.paper, textShadow: `4px 4px 0 ${palette.ink}` }}>
-                {L(data.meta.nickname, lang).charAt(0)}
-              </div>
-              <div className="c-hand" style={{ position:'absolute', bottom: 8, right: 12, fontSize: 12, color: palette.paper }}>[ portrait ]</div>
+              {data.meta.avatar_url ? (
+                <img src={data.meta.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+              ) : (
+                <div className="c-display" style={{ fontSize: 80, color: palette.paper, textShadow: `4px 4px 0 ${palette.ink}` }}>
+                  {L(data.meta.nickname, lang).charAt(0)}
+                </div>
+              )}
+              <div className="c-hand" style={{ position:'absolute', bottom: 8, right: 12, fontSize: 12, color: palette.paper, background: palette.ink+'88', padding: '2px 8px', borderRadius: 4 }}>[ portrait ]</div>
             </div>
             <div className="c-display" style={{ fontSize: 28, marginTop: 12, lineHeight: 1 }}>{L(data.meta.nickname, lang)}</div>
             <div className="c-hand" style={{ fontSize: 15, color: palette.inkSoft }}>{t('Age','อายุ')} {data.meta.age} · {L(data.meta.grade, lang)}</div>

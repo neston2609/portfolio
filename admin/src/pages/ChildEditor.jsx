@@ -126,6 +126,20 @@ export default function ChildEditor() {
     nav('/children');
   }
 
+  async function uploadAvatar(file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    const { child: updated, media: m } = await api.post(`/children/${id}/avatar`, fd);
+    setChild(updated);
+    setMedia((cur) => [m, ...cur]);
+  }
+
+  async function removeAvatar() {
+    if (!confirm("Remove the child's profile photo? The image file stays in Media — you can re-set it later.")) return;
+    const { child: updated } = await api.delete(`/children/${id}/avatar`);
+    setChild(updated);
+  }
+
   return (
     <div>
       <Link to="/children" style={{ color: '#94a3b8', textDecoration: 'none' }}>← All children</Link>
@@ -138,6 +152,15 @@ export default function ChildEditor() {
 
       <Panel title="Profile">
         <ProfileForm child={child} themes={themes} onSave={saveProfile} />
+      </Panel>
+
+      <Panel title="Profile photo">
+        <AvatarPanel
+          child={child}
+          portfolioUrl={portfolioUrl}
+          onUpload={uploadAvatar}
+          onRemove={removeAvatar}
+        />
       </Panel>
 
       <Panel title="Visibility — public site sections">
@@ -330,6 +353,62 @@ const inp = {
   background: '#0b1220', color: '#fffaf0', border: '1px solid #334155',
   borderRadius: 6, padding: '8px 10px', fontSize: 14, fontFamily: 'inherit',
 };
+
+function AvatarPanel({ child, portfolioUrl, onUpload, onRemove }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const hasAvatar = !!child.avatar_media_id;
+  const avatarUrl = hasAvatar ? `${portfolioUrl}/_media/${child.id}/${child.avatar_media_id}` : null;
+  const initial = (child.nickname || child.firstname || '?').charAt(0).toUpperCase();
+
+  async function onPick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErr('Pick an image file (PNG, JPG, WebP, …).'); return;
+    }
+    setBusy(true); setErr(null);
+    try { await onUpload(file); e.target.value = ''; }
+    catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{
+        width: 120, height: 120, borderRadius: '50%', overflow: 'hidden',
+        background: '#1f2937', display: 'grid', placeItems: 'center',
+        border: '3px solid #334155', flexShrink: 0,
+      }}>
+        {hasAvatar ? (
+          <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ fontSize: 56, fontWeight: 700, color: '#fbbf24' }}>{initial}</span>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 240 }}>
+        <p style={{ marginTop: 0, color: '#cbd5e1' }}>
+          {hasAvatar
+            ? 'Current profile photo. Themes show this in the hero and nav avatar. Replace by uploading a new image.'
+            : 'No profile photo set. Themes are showing the nickname letter as a fallback. Upload an image to use it instead.'}
+        </p>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <label style={{ ...btn('primary'), display: 'inline-block' }}>
+            {busy ? 'Uploading…' : (hasAvatar ? 'Replace photo' : 'Upload photo')}
+            <input type="file" accept="image/*" onChange={onPick} disabled={busy} style={{ display: 'none' }} />
+          </label>
+          {hasAvatar && (
+            <button type="button" onClick={onRemove} style={btn('ghost')}>Remove photo</button>
+          )}
+          {err && <span style={{ color: '#fca5a5', fontSize: 13 }}>{err}</span>}
+        </div>
+        <p style={{ color: '#64748b', fontSize: 12, marginTop: 10 }}>
+          Square images work best (themes crop to a circle). PNG/JPG/WebP, up to {Math.round((Number(import.meta.env?.VITE_MAX_UPLOAD_MB) || 20))} MB.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function ModeButton({ active, onClick, children }) {
   return (

@@ -64,6 +64,10 @@ router.get('*', async (req, res) => {
 function buildMeta(child, data) {
   // Themes read PORTFOLIO_DATA.meta for nav/hero info.
   const passthrough = (data && data.meta) || {};
+  // Avatar URL is served from the child's own subdomain (tenant-isolated).
+  const avatar_url = child.avatar_media_id
+    ? `/_media/${child.id}/${child.avatar_media_id}`
+    : null;
   return {
     name: passthrough.name || { en: `${child.firstname}${child.lastname ? ' ' + child.lastname : ''}` },
     nickname: passthrough.nickname || { en: child.nickname || child.firstname },
@@ -77,6 +81,7 @@ function buildMeta(child, data) {
     catch: passthrough.catch || { en: 'POW!' },
     available: passthrough.available,
     email: passthrough.email,
+    avatar_url,
   };
 }
 

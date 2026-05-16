@@ -42,6 +42,19 @@ CREATE TABLE IF NOT EXISTS children (
 );
 CREATE INDEX IF NOT EXISTS idx_children_published ON children(is_published);
 
+-- Avatar (added in a later migration; idempotent so older deployments upgrade cleanly).
+-- ON DELETE SET NULL so removing the media row doesn't break the child.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='children' AND column_name='avatar_media_id'
+  ) THEN
+    ALTER TABLE children ADD COLUMN avatar_media_id uuid;
+    ALTER TABLE children ADD CONSTRAINT children_avatar_fk
+      FOREIGN KEY (avatar_media_id) REFERENCES media(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
 -- Portfolio is the structured content blob mirroring data.js shape from the design.
 -- JSONB lets new themes consume extra fields without schema migrations.
 -- Multilang fields are stored as {"en":"...","th":"..."} — only `en` populated for v1.

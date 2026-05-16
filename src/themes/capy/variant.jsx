@@ -107,8 +107,10 @@ function PortfolioCapy({ lang, onLangChange }) {
       }}>
         <div style={{ ...pWrap, display:'flex', justifyContent:'space-between', alignItems:'center', height: 64 }}>
           <a href="#top" className="p-link" style={{ display:'flex', gap: 12, alignItems:'center' }}>
-            <div style={{ width: 42, height: 42, position:'relative' }}>
-              <CapybaraIcon palette={palette} size={42} />
+            <div style={{ width: 42, height: 42, position:'relative', borderRadius:'50%', overflow:'hidden', border: data.meta.avatar_url ? `2px solid ${palette.brown}` : 'none' }}>
+              {data.meta.avatar_url
+                ? <img src={data.meta.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                : <CapybaraIcon palette={palette} size={42} />}
             </div>
             <div style={{ display:'flex', flexDirection:'column', lineHeight: 1.1 }}>
               <span className="p-display" style={{ fontSize: 20 }}>{L(data.meta.name, lang)}</span>

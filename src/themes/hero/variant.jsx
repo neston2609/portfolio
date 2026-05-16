@@ -103,10 +103,12 @@ function PortfolioHero({ lang, onLangChange }) {
               width: 38, height: 38,
               background: `linear-gradient(135deg, ${palette.gold}, ${palette.pink})`,
               borderRadius: 10, border: `2px solid ${palette.gold}`,
-              display:'grid', placeItems:'center',
+              display:'grid', placeItems:'center', overflow:'hidden',
               fontFamily:'"Lilita One"', fontSize: 18, color: palette.ink,
               boxShadow: `0 0 0 1px ${palette.bg} inset, 0 4px 14px ${palette.gold}55`,
-            }}>{L(data.meta.nickname, lang).charAt(0)}</div>
+            }}>{data.meta.avatar_url
+              ? <img src={data.meta.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : L(data.meta.nickname, lang).charAt(0)}</div>
             <div style={{ display:'flex', flexDirection:'column', lineHeight: 1 }}>
               <span className="h-display" style={{ fontSize: 20 }}>{L(data.meta.name, lang)}</span>
               <span className="h-pixel" style={{ fontSize: 9, color: palette.gold, marginTop: 4 }}>LVL.{data.meta.age} HERO</span>
@@ -682,10 +684,14 @@ function CharacterCard({ data, lang, palette, t }) {
           {[[15,20,8],[80,25,6],[20,80,5],[78,75,7],[50,15,4]].map(([l,top,sz],i)=>(
             <div key={i} style={{ position:'absolute', left: `${l}%`, top: `${top}%`, width: sz, height: sz, background: palette.gold, borderRadius:'50%', boxShadow:`0 0 ${sz*2}px ${palette.gold}` }} />
           ))}
-          <div className="h-display" style={{
-            fontSize: 130, lineHeight: 1, color: palette.gold,
-            textShadow: `0 4px 0 ${palette.ink}, 0 0 30px ${palette.gold}88`,
-          }}>{L(data.meta.nickname, lang).charAt(0)}</div>
+          {data.meta.avatar_url ? (
+            <img src={data.meta.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+          ) : (
+            <div className="h-display" style={{
+              fontSize: 130, lineHeight: 1, color: palette.gold,
+              textShadow: `0 4px 0 ${palette.ink}, 0 0 30px ${palette.gold}88`,
+            }}>{L(data.meta.nickname, lang).charAt(0)}</div>
+          )}
         </div>
 
         {/* Name */}
