@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Portfolio — Sticker Book</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat+Brush&family=Caveat:wght@400..700&family=Fredoka:wght@300..600&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lilita+One&family=Patrick+Hand&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!--PORTFOLIO_DATA-->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #fffaf0; }
+      body { font-family: "Fredoka", "IBM Plex Sans Thai", system-ui, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      a { color: inherit; }
+      ::selection { background: #fbbf24; color: #1a1a1a; }
+      :focus-visible { outline: 3px dashed #fbbf24; outline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+    <script type="text/babel" src="cert-modal.jsx"></script>
+    <script type="text/babel" src="variant.jsx"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+      function App() {
+        const [lang, setLang] = useState(() => localStorage.getItem('pf-lang') || 'en');
+        useEffect(() => { localStorage.setItem('pf-lang', lang); }, [lang]);
+        return <PortfolioSticker lang={lang} onLangChange={setLang} />;
+      }
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+  </body>
+</html>
