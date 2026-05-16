@@ -373,13 +373,14 @@ function PortfolioComic({ lang, onLangChange }) {
             boxShadow: `4px 4px 0 ${palette.ink}`,
           }}>S</div>
           <div style={{ flex: 1 }}>
-            <div className="c-display" style={{ fontSize: 24, color: palette.paper, textShadow:`3px 3px 0 ${palette.ink}` }}>scratch.mit.edu/users/{data.scratch.profile.handle}</div>
+            <a href={data.scratch.profile.url} target="_blank" rel="noopener noreferrer" className="c-link c-display" style={{ fontSize: 24, color: palette.paper, textShadow:`3px 3px 0 ${palette.ink}` }}>
+              scratch.mit.edu/users/{data.scratch.profile.handle}
+            </a>
             <div className="c-hand" style={{ fontSize: 17, color: palette.paper, marginTop: 4 }}>{L(data.scratch.intro, lang)}</div>
           </div>
-          <div style={{ display:'flex', gap: 12, fontFamily:'"Bangers", system-ui', letterSpacing:'.06em', fontSize: 15, color: palette.paper, textShadow:`2px 2px 0 ${palette.ink}` }}>
-            <span>★ {data.scratch.profile.followers} {t('FANS','แฟน')}</span>
-            <span>★ {data.scratch.profile.projectsShared} {t('PROJECTS','โปรเจกต์')}</span>
-          </div>
+          <a href={data.scratch.profile.url} target="_blank" rel="noopener noreferrer" className="c-btn c-link" style={{ background: palette.paper, color: '#fb923c' }}>
+            {t('VISIT PROFILE','ไปดูโปรไฟล์')} ↗
+          </a>
         </div>
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 16 }}>

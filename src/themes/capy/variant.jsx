@@ -390,13 +390,14 @@ function PortfolioCapy({ lang, onLangChange }) {
             boxShadow:`2px 2px 0 ${palette.ink}`,
           }}>S</div>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div className="p-display" style={{ fontSize: 20 }}>scratch.mit.edu/users/{data.scratch.profile.handle}</div>
+            <a href={data.scratch.profile.url} target="_blank" rel="noopener noreferrer" className="p-link p-display" style={{ fontSize: 20 }}>
+              scratch.mit.edu/users/{data.scratch.profile.handle}
+            </a>
             <div className="p-hand" style={{ fontSize: 18, marginTop: 2 }}>{L(data.scratch.intro, lang)}</div>
           </div>
-          <div className="p-hand" style={{ fontSize: 20, textAlign:'right' }}>
-            <div>★ {data.scratch.profile.followers} {t('fans','แฟน')}</div>
-            <div>★ {data.scratch.profile.projectsShared} {t('projects','โปรเจกต์')}</div>
-          </div>
+          <a href={data.scratch.profile.url} target="_blank" rel="noopener noreferrer" className="p-btn p-link" style={{ background:'#fff8e8', color:'#fb923c' }}>
+            {t('visit profile','ไปโปรไฟล์')} ↗
+          </a>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 16 }}>
           {data.scratch.items.map((s, i) => (

@@ -411,19 +411,14 @@ function PortfolioHero({ lang, onLangChange }) {
             boxShadow: `0 6px 18px ${palette.ink}66`,
           }}>S</div>
           <div style={{ flex: 1, position:'relative' }}>
-            <div className="h-display" style={{ fontSize: 22, color: palette.inkLight }}>scratch.mit.edu/users/{data.scratch.profile.handle}</div>
+            <a href={data.scratch.profile.url} target="_blank" rel="noopener noreferrer" className="h-link h-display" style={{ fontSize: 22, color: palette.inkLight }}>
+              scratch.mit.edu/users/{data.scratch.profile.handle}
+            </a>
             <div style={{ fontSize: 13, color:'#fed7aa', marginTop: 4 }}>{L(data.scratch.intro, lang)}</div>
           </div>
-          <div style={{ position:'relative', display:'flex', gap: 24 }}>
-            <div style={{ textAlign:'center' }}>
-              <div className="h-display" style={{ fontSize: 24, color: palette.gold, lineHeight: 1 }}>{data.scratch.profile.followers}</div>
-              <div className="h-pixel" style={{ fontSize: 9, color:'#fed7aa', letterSpacing:'.1em' }}>{t('FANS','แฟน')}</div>
-            </div>
-            <div style={{ textAlign:'center' }}>
-              <div className="h-display" style={{ fontSize: 24, color: palette.gold, lineHeight: 1 }}>{data.scratch.profile.projectsShared}</div>
-              <div className="h-pixel" style={{ fontSize: 9, color:'#fed7aa', letterSpacing:'.1em' }}>{t('PROJECTS','โปรเจกต์')}</div>
-            </div>
-          </div>
+          <a href={data.scratch.profile.url} target="_blank" rel="noopener noreferrer" className="h-btn h-link" style={{ position:'relative', background:'#fb923c', color:'#fff', borderColor:'#fb923c' }}>
+            {t('VISIT PROFILE','ไปดูโปรไฟล์')} ↗
+          </a>
         </div>
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 16 }}>

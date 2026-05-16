@@ -427,13 +427,14 @@ function PortfolioSticker({ lang, onLangChange }) {
             boxShadow:`2px 2px 0 ${palette.ink}`,
           }}>S</div>
           <div style={{ flex: 1 }}>
-            <div className="k-display" style={{ fontSize: 26, lineHeight: 1 }}>scratch.mit.edu/users/{data.scratch.profile.handle}</div>
+            <a href={data.scratch.profile.url} target="_blank" rel="noopener noreferrer" className="k-link k-display" style={{ fontSize: 26, lineHeight: 1 }}>
+              scratch.mit.edu/users/{data.scratch.profile.handle}
+            </a>
             <div className="k-hand" style={{ fontSize: 17, marginTop: 4 }}>{L(data.scratch.intro, lang)}</div>
           </div>
-          <div className="k-marker" style={{ fontSize: 22, textAlign:'right' }}>
-            <div>★ {data.scratch.profile.followers} {t('fans','แฟน')}</div>
-            <div>★ {data.scratch.profile.projectsShared} {t('projects','โปรเจกต์')}</div>
-          </div>
+          <a href={data.scratch.profile.url} target="_blank" rel="noopener noreferrer" className="k-btn k-link" style={{ background: '#fff', color:'#fb923c', transform:'rotate(-2deg)' }}>
+            {t('visit profile','ไปโปรไฟล์')} ↗
+          </a>
         </div>
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 22 }}>
