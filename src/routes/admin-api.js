@@ -46,6 +46,37 @@ router.get('/auth/me', (req, res) => {
 // All routes below require auth.
 router.use(requireAdmin);
 
+// --- Account -------------------------------------------------------------
+
+router.post('/auth/change-password', express.json(), async (req, res) => {
+  const { current_password, new_password } = req.body || {};
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'current_password and new_password required' });
+  }
+  if (new_password.length < 8) {
+    return res.status(400).json({ error: 'new password must be at least 8 characters' });
+  }
+  if (current_password === new_password) {
+    return res.status(400).json({ error: 'new password must differ from current' });
+  }
+  const { rows } = await pool.query(
+    'SELECT password_hash FROM admins WHERE id = $1',
+    [req.session.adminId]
+  );
+  const admin = rows[0];
+  if (!admin) return res.status(404).json({ error: 'admin not found' });
+
+  const ok = await bcrypt.compare(current_password, admin.password_hash);
+  if (!ok) return res.status(401).json({ error: 'current password is incorrect' });
+
+  const newHash = await bcrypt.hash(new_password, 12);
+  await pool.query(
+    'UPDATE admins SET password_hash = $1 WHERE id = $2',
+    [newHash, req.session.adminId]
+  );
+  res.json({ ok: true });
+});
+
 // --- Children ------------------------------------------------------------
 
 router.get('/children', async (_req, res) => {
