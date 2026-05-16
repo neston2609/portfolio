@@ -1,0 +1,390 @@
+// Full structured editor for a child's portfolio JSON.
+// Each section maps 1:1 to a key in data.js from the design.
+// Multilang fields use the {en: "..."} shape so v2's Thai toggle plugs in later.
+
+import React from 'react';
+import { TextField, MultilangField, NumberField, ColorField, ArrayField, Section, Row } from './fields.jsx';
+
+export default function PortfolioForm({ data, onChange }) {
+  // Helper: replace a top-level section with a patched copy.
+  const setSection = (key) => (next) => onChange({ ...data, [key]: next });
+  const meta = data.meta || {};
+  const setMeta = (patch) => onChange({ ...data, meta: { ...meta, ...patch } });
+
+  return (
+    <div>
+      {/* META — non-name fields that appear in hero/nav of the theme */}
+      <Section title="Hero / meta" defaultOpen>
+        <Row cols={2}>
+          <MultilangField label="Role / tagline" value={meta.role} onChange={(v) => setMeta({ role: v })} placeholder="Tiny Explorer" />
+          <NumberField label="Age" value={meta.age} onChange={(v) => setMeta({ age: v })} min={1} max={120} />
+          <MultilangField label="Grade" value={meta.grade} onChange={(v) => setMeta({ grade: v })} placeholder="Grade 6" />
+          <MultilangField label="School (display)" value={meta.school} onChange={(v) => setMeta({ school: v })} />
+          <MultilangField label="Location" value={meta.location} onChange={(v) => setMeta({ location: v })} placeholder="Bangkok" />
+          <MultilangField label="Motto" value={meta.motto} onChange={(v) => setMeta({ motto: v })} placeholder="Curious + Brave = ME!" />
+          <MultilangField label="Hello phrase" value={meta.hello} onChange={(v) => setMeta({ hello: v })} placeholder="Hi there!" />
+          <MultilangField label="Catch / pow word" value={meta.catch} onChange={(v) => setMeta({ catch: v })} placeholder="POW!" />
+          <MultilangField label="Availability" value={meta.available} onChange={(v) => setMeta({ available: v })} placeholder="Ready for adventure!" />
+          <TextField label="Contact email" value={meta.email} onChange={(v) => setMeta({ email: v })} placeholder="kong@example.com" />
+        </Row>
+      </Section>
+
+      <AboutEditor value={data.about} onChange={setSection('about')} />
+      <PowersEditor value={data.powers} onChange={setSection('powers')} />
+      <EducationEditor value={data.education} onChange={setSection('education')} />
+      <ProjectsEditor value={data.projects} onChange={setSection('projects')} />
+      <YoutubeEditor value={data.youtube} onChange={setSection('youtube')} />
+      <ScratchEditor value={data.scratch} onChange={setSection('scratch')} />
+      <GalleryEditor value={data.gallery} onChange={setSection('gallery')} />
+      <AchievementsEditor value={data.achievements} onChange={setSection('achievements')} />
+      <AwardsEditor value={data.awards} onChange={setSection('awards')} />
+      <CertificatesEditor value={data.certificates} onChange={setSection('certificates')} />
+      <SocialEditor value={data.social} onChange={setSection('social')} />
+    </div>
+  );
+}
+
+// ---- per-section editors --------------------------------------------------
+
+function AboutEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="About" badge={(v.favorites || []).length + ' favorites'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="About Me" />
+      <MultilangField label="Intro paragraph" value={v.intro} onChange={(x) => onChange({ ...v, intro: x })} multiline />
+      <ArrayField
+        label="Favorites"
+        items={v.favorites}
+        onChange={(x) => onChange({ ...v, favorites: x })}
+        itemLabel="favorite"
+        defaultItem={() => ({ label: { en: '' }, value: { en: '' } })}
+        renderItem={(it, update) => (
+          <Row cols={2}>
+            <MultilangField label="Label" value={it.label} onChange={(x) => update({ label: x })} placeholder="Fave subject" />
+            <MultilangField label="Value" value={it.value} onChange={(x) => update({ value: x })} placeholder="Science" />
+          </Row>
+        )}
+      />
+    </Section>
+  );
+}
+
+function PowersEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="Powers / skills" badge={(v.items || []).length + ' items'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Superpowers" />
+      <ArrayField
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="power"
+        defaultItem={() => ({ letter: 'X', name: { en: '' }, level: 3, color: '#3b82f6' })}
+        renderItem={(it, update) => (
+          <Row cols={4}>
+            <TextField label="Badge letter" value={it.letter} onChange={(x) => update({ letter: (x || '').slice(0, 2).toUpperCase() })} />
+            <MultilangField label="Name" value={it.name} onChange={(x) => update({ name: x })} placeholder="Math" />
+            <NumberField label="Level (0–5)" value={it.level} onChange={(x) => update({ level: Math.max(0, Math.min(5, x ?? 0)) })} min={0} max={5} />
+            <ColorField label="Color" value={it.color} onChange={(x) => update({ color: x })} />
+          </Row>
+        )}
+      />
+    </Section>
+  );
+}
+
+function EducationEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="Education" badge={(v.items || []).length + ' entries'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="School" />
+      <ArrayField
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="school entry"
+        defaultItem={() => ({ period: '', school: { en: '' }, degree: { en: '' }, detail: { en: '' } })}
+        renderItem={(it, update) => (
+          <>
+            <Row cols={2}>
+              <TextField label="Period (e.g. 2023 — 2026)" value={it.period} onChange={(x) => update({ period: x })} />
+              <MultilangField label="School" value={it.school} onChange={(x) => update({ school: x })} />
+            </Row>
+            <MultilangField label="Degree / grade" value={it.degree} onChange={(x) => update({ degree: x })} />
+            <MultilangField label="Detail" value={it.detail} onChange={(x) => update({ detail: x })} placeholder="GPA 3.95 · Science club lead" />
+          </>
+        )}
+      />
+    </Section>
+  );
+}
+
+function ProjectsEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="Projects / quests" badge={(v.items || []).length + ' projects'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="My Quests" />
+      <ArrayField
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="project"
+        defaultItem={() => ({ title: { en: '' }, kind: { en: '' }, year: String(new Date().getFullYear()), summary: { en: '' }, emoji: '🚀', bg: '#3b82f6' })}
+        renderItem={(it, update) => (
+          <>
+            <Row cols={2}>
+              <MultilangField label="Title" value={it.title} onChange={(x) => update({ title: x })} />
+              <MultilangField label="Kind" value={it.kind} onChange={(x) => update({ kind: x })} placeholder="Science project" />
+            </Row>
+            <Row cols={3}>
+              <TextField label="Year" value={it.year} onChange={(x) => update({ year: x })} />
+              <TextField label="Emoji" value={it.emoji} onChange={(x) => update({ emoji: x })} />
+              <ColorField label="Card color" value={it.bg} onChange={(x) => update({ bg: x })} />
+            </Row>
+            <MultilangField label="Summary" value={it.summary} onChange={(x) => update({ summary: x })} multiline />
+          </>
+        )}
+      />
+    </Section>
+  );
+}
+
+function YoutubeEditor({ value, onChange }) {
+  const v = value || {};
+  const channel = v.channel || {};
+  const setChannel = (patch) => onChange({ ...v, channel: { ...channel, ...patch } });
+  return (
+    <Section title="YouTube" badge={(v.items || []).length + ' videos'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="My YouTube Channel" />
+      <div style={{ padding: 12, border: '1px dashed #334155', borderRadius: 8, background: '#0b1220', display: 'grid', gap: 10 }}>
+        <div style={{ fontSize: 12, color: '#cbd5e1' }}>Channel</div>
+        <Row cols={2}>
+          <MultilangField label="Name" value={channel.name} onChange={(x) => setChannel({ name: x })} placeholder="Kong Adventures" />
+          <TextField label="Handle" value={channel.handle} onChange={(x) => setChannel({ handle: x })} placeholder="@kong-adventures" />
+        </Row>
+        <MultilangField label="Tagline" value={channel.tagline} onChange={(x) => setChannel({ tagline: x })} />
+        <Row cols={4}>
+          <TextField label="Subscribers" value={channel.subs} onChange={(x) => setChannel({ subs: x })} placeholder="1.2K" />
+          <NumberField label="Videos" value={channel.videos} onChange={(x) => setChannel({ videos: x })} />
+          <TextField label="Total views" value={channel.views} onChange={(x) => setChannel({ views: x })} placeholder="38K" />
+          <TextField label="URL" value={channel.url} onChange={(x) => setChannel({ url: x })} placeholder="https://youtube.com/@..." />
+        </Row>
+      </div>
+      <ArrayField
+        label="Videos"
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="video"
+        defaultItem={() => ({ title: { en: '' }, kind: { en: '' }, duration: '0:00', views: '0', date: '', emoji: '🎬', bg: '#3b82f6' })}
+        renderItem={(it, update) => (
+          <>
+            <MultilangField label="Title" value={it.title} onChange={(x) => update({ title: x })} />
+            <Row cols={2}>
+              <MultilangField label="Kind" value={it.kind} onChange={(x) => update({ kind: x })} placeholder="Fun science" />
+              <TextField label="Date (YYYY-MM)" value={it.date} onChange={(x) => update({ date: x })} placeholder="2025-11" />
+            </Row>
+            <Row cols={4}>
+              <TextField label="Duration" value={it.duration} onChange={(x) => update({ duration: x })} placeholder="8:24" />
+              <TextField label="Views" value={it.views} onChange={(x) => update({ views: x })} placeholder="12K" />
+              <TextField label="Emoji" value={it.emoji} onChange={(x) => update({ emoji: x })} />
+              <ColorField label="Card color" value={it.bg} onChange={(x) => update({ bg: x })} />
+            </Row>
+          </>
+        )}
+      />
+    </Section>
+  );
+}
+
+function ScratchEditor({ value, onChange }) {
+  const v = value || {};
+  const profile = v.profile || {};
+  const setProfile = (patch) => onChange({ ...v, profile: { ...profile, ...patch } });
+  return (
+    <Section title="Scratch" badge={(v.items || []).length + ' projects'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="My Scratch Projects" />
+      <MultilangField label="Intro paragraph" value={v.intro} onChange={(x) => onChange({ ...v, intro: x })} multiline />
+      <div style={{ padding: 12, border: '1px dashed #334155', borderRadius: 8, background: '#0b1220', display: 'grid', gap: 10 }}>
+        <div style={{ fontSize: 12, color: '#cbd5e1' }}>Profile</div>
+        <Row cols={4}>
+          <TextField label="Handle" value={profile.handle} onChange={(x) => setProfile({ handle: x })} placeholder="kong-coder" />
+          <NumberField label="Followers" value={profile.followers} onChange={(x) => setProfile({ followers: x })} />
+          <NumberField label="Projects shared" value={profile.projectsShared} onChange={(x) => setProfile({ projectsShared: x })} />
+          <TextField label="URL" value={profile.url} onChange={(x) => setProfile({ url: x })} />
+        </Row>
+      </div>
+      <ArrayField
+        label="Projects"
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="scratch project"
+        defaultItem={() => ({ title: { en: '' }, kind: { en: '' }, plays: '0', loves: 0, blocks: 0, emoji: '🎮', bg: '#312e81' })}
+        renderItem={(it, update) => (
+          <>
+            <MultilangField label="Title" value={it.title} onChange={(x) => update({ title: x })} />
+            <Row cols={2}>
+              <MultilangField label="Kind" value={it.kind} onChange={(x) => update({ kind: x })} placeholder="Game" />
+              <TextField label="Plays" value={it.plays} onChange={(x) => update({ plays: x })} />
+            </Row>
+            <Row cols={4}>
+              <NumberField label="Loves" value={it.loves} onChange={(x) => update({ loves: x })} />
+              <NumberField label="Blocks" value={it.blocks} onChange={(x) => update({ blocks: x })} />
+              <TextField label="Emoji" value={it.emoji} onChange={(x) => update({ emoji: x })} />
+              <ColorField label="Card color" value={it.bg} onChange={(x) => update({ bg: x })} />
+            </Row>
+          </>
+        )}
+      />
+    </Section>
+  );
+}
+
+function GalleryEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="Gallery" badge={(v.items || []).length + ' tiles'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Gallery" />
+      <MultilangField label="Intro" value={v.intro} onChange={(x) => onChange({ ...v, intro: x })} />
+      <ArrayField
+        label="Gallery tiles"
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="tile"
+        defaultItem={() => ({ kind: 'photo', size: 'sm', label: { en: '' }, emoji: '📷', bg: '#3b82f6' })}
+        renderItem={(it, update) => (
+          <>
+            <MultilangField label="Label" value={it.label} onChange={(x) => update({ label: x })} />
+            <Row cols={4}>
+              <Select label="Kind" value={it.kind} onChange={(x) => update({ kind: x })} options={[['photo', 'Photo'], ['video', 'Video']]} />
+              <Select label="Size" value={it.size} onChange={(x) => update({ size: x })} options={[['sm', 'Small'], ['md', 'Medium (2×1)'], ['lg', 'Large (2×2)']]} />
+              <TextField label="Emoji" value={it.emoji} onChange={(x) => update({ emoji: x })} />
+              <ColorField label="Tile color" value={it.bg} onChange={(x) => update({ bg: x })} />
+            </Row>
+            {it.kind === 'video' &&
+              <TextField label="Video duration (mm:ss)" value={it.duration} onChange={(x) => update({ duration: x })} placeholder="0:48" />}
+          </>
+        )}
+      />
+    </Section>
+  );
+}
+
+function AchievementsEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="Achievements (header only — Awards + Certificates render inside)">
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Achievements" />
+    </Section>
+  );
+}
+
+function AwardsEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="Awards / Trophies" badge={(v.items || []).length + ' awards'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Trophies" />
+      <ArrayField
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="award"
+        defaultItem={() => ({ year: String(new Date().getFullYear()), rank: { en: 'GOLD' }, medal: '🥇', name: { en: '' } })}
+        renderItem={(it, update) => (
+          <>
+            <Row cols={3}>
+              <TextField label="Year" value={it.year} onChange={(x) => update({ year: x })} />
+              <MultilangField label="Rank" value={it.rank} onChange={(x) => update({ rank: x })} placeholder="GOLD" />
+              <TextField label="Medal emoji" value={it.medal} onChange={(x) => update({ medal: x })} placeholder="🥇" />
+            </Row>
+            <MultilangField label="Award name" value={it.name} onChange={(x) => update({ name: x })} />
+          </>
+        )}
+      />
+    </Section>
+  );
+}
+
+function CertificatesEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="Certificates" badge={(v.items || []).length + ' certificates'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Certificates" />
+
+      <div style={{ padding: 12, border: '1px dashed #334155', borderRadius: 8, background: '#0b1220' }}>
+        <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 8 }}>Filter categories</div>
+        <ArrayField
+          items={v.categories}
+          onChange={(x) => onChange({ ...v, categories: x })}
+          itemLabel="category"
+          defaultItem={() => ({ id: '', label: { en: '' } })}
+          renderItem={(it, update) => (
+            <Row cols={2}>
+              <TextField label="ID (lowercase, no spaces)" value={it.id} onChange={(x) => update({ id: x.toLowerCase().replace(/[^a-z0-9-]/g, '') })} />
+              <MultilangField label="Label" value={it.label} onChange={(x) => update({ label: x })} />
+            </Row>
+          )}
+        />
+      </div>
+
+      <ArrayField
+        label="Certificates"
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="certificate"
+        defaultItem={() => ({ id: 'cert-' + Math.random().toString(36).slice(2, 8), name: { en: '' }, issuer: { en: '' }, date: '', category: 'all', color: '#fde047' })}
+        renderItem={(it, update, i) => {
+          const categories = v.categories || [];
+          return (
+            <>
+              <MultilangField label="Certificate name" value={it.name} onChange={(x) => update({ name: x })} />
+              <Row cols={2}>
+                <MultilangField label="Issuer" value={it.issuer} onChange={(x) => update({ issuer: x })} />
+                <TextField label="Date (YYYY-MM)" value={it.date} onChange={(x) => update({ date: x })} placeholder="2025-12" />
+              </Row>
+              <Row cols={3}>
+                <TextField label="ID (unique)" value={it.id} onChange={(x) => update({ id: x })} />
+                <Select label="Category" value={it.category} onChange={(x) => update({ category: x })}
+                        options={categories.map((c) => [c.id, (c.label?.en || c.id)])} />
+                <ColorField label="Background color" value={it.color} onChange={(x) => update({ color: x })} />
+              </Row>
+            </>
+          );
+        }}
+      />
+    </Section>
+  );
+}
+
+function SocialEditor({ value, onChange }) {
+  const v = value || {};
+  return (
+    <Section title="Social / Contact" badge={(v.items || []).length + ' links'}>
+      <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Send me a message" />
+      <ArrayField
+        items={v.items}
+        onChange={(x) => onChange({ ...v, items: x })}
+        itemLabel="link"
+        defaultItem={() => ({ label: '', value: '', href: '' })}
+        renderItem={(it, update) => (
+          <Row cols={3}>
+            <TextField label="Label" value={it.label} onChange={(x) => update({ label: x })} placeholder="Email" />
+            <TextField label="Display value" value={typeof it.value === 'string' ? it.value : (it.value?.en || '')}
+                       onChange={(x) => update({ value: x })} placeholder="me@example.com" />
+            <TextField label="URL (href)" value={it.href} onChange={(x) => update({ href: x })} placeholder="mailto:..." />
+          </Row>
+        )}
+      />
+    </Section>
+  );
+}
+
+// ---- helpers --------------------------------------------------------------
+
+import { lbl, inp } from './fields.jsx';
+
+function Select({ label, value, onChange, options }) {
+  return (
+    <label style={lbl}>
+      {label && <span>{label}</span>}
+      <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} style={inp}>
+        {options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+      </select>
+    </label>
+  );
+}

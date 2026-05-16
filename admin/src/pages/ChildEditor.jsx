@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { btn } from '../App.jsx';
+import PortfolioForm from '../components/PortfolioForm.jsx';
 
 // Editor mounts five panels:
 //   Profile (slug/name/theme/published) | Portfolio JSON | Visibility | Media | Danger zone
@@ -30,7 +31,9 @@ export default function ChildEditor() {
   const [portfolio, setPortfolio] = useState(null);
   const [visibility, setVisibility] = useState({});
   const [media, setMedia] = useState([]);
-  const [dataText, setDataText] = useState('');
+  const [editMode, setEditMode] = useState('form'); // 'form' | 'json'
+  const [dataObj, setDataObj] = useState({});       // source of truth in form mode
+  const [dataText, setDataText] = useState('');     // source of truth in json mode
   const [dataErr, setDataErr] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
@@ -47,9 +50,29 @@ export default function ChildEditor() {
     setPortfolio(p);
     setVisibility(p.visibility || {});
     setMedia(m);
+    setDataObj(p.data || {});
     setDataText(JSON.stringify(p.data || {}, null, 2));
   }
   useEffect(() => { loadAll(); }, [id]);
+
+  // Switching tabs syncs the other view from the active one so edits aren't lost.
+  function switchMode(mode) {
+    if (mode === editMode) return;
+    if (mode === 'json') {
+      setDataText(JSON.stringify(dataObj, null, 2));
+      setDataErr(null);
+      setEditMode('json');
+    } else {
+      try {
+        const parsed = JSON.parse(dataText);
+        setDataObj(parsed);
+        setDataErr(null);
+        setEditMode('form');
+      } catch (e) {
+        setDataErr('JSON parse error — fix before switching to form view: ' + e.message);
+      }
+    }
+  }
 
   const portfolioUrl = useMemo(() => child ? `http://${child.firstname_slug}.rasikawan.com` : '', [child]);
 
@@ -61,13 +84,20 @@ export default function ChildEditor() {
   }
 
   async function savePortfolio() {
-    let parsed;
-    try { parsed = JSON.parse(dataText); }
-    catch (e) { setDataErr('JSON parse error: ' + e.message); return; }
+    let payload;
+    if (editMode === 'json') {
+      try { payload = JSON.parse(dataText); }
+      catch (e) { setDataErr('JSON parse error: ' + e.message); return; }
+    } else {
+      payload = dataObj;
+    }
     setDataErr(null); setSaving(true);
     try {
-      await api.put(`/children/${id}/portfolio`, { data: parsed, visibility });
+      await api.put(`/children/${id}/portfolio`, { data: payload, visibility });
       setSavedAt(new Date());
+      // Keep both views in sync after save
+      setDataObj(payload);
+      setDataText(JSON.stringify(payload, null, 2));
     } catch (e) { setDataErr(e.message); }
     finally { setSaving(false); }
   }
@@ -131,21 +161,35 @@ export default function ChildEditor() {
         </div>
       </Panel>
 
-      <Panel title="Portfolio content (JSON)">
-        <p style={{ color: '#94a3b8', fontSize: 13, marginTop: 0 }}>
-          Multilang fields use {`{"en": "...", "th": "..."}`}. For v1 only English is rendered, but adding Thai now
-          will surface once the language toggle is enabled.
-        </p>
-        <textarea
-          value={dataText}
-          onChange={(e) => setDataText(e.target.value)}
-          spellCheck={false}
-          style={{
-            width: '100%', minHeight: 420, padding: 14, fontSize: 12,
-            fontFamily: 'ui-monospace, "JetBrains Mono", monospace',
-            background: '#0b1220', color: '#a5f3fc', border: '1px solid #334155', borderRadius: 6,
-          }}
-        />
+      <Panel title="Portfolio content">
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+          <ModeButton active={editMode === 'form'} onClick={() => switchMode('form')}>Form</ModeButton>
+          <ModeButton active={editMode === 'json'} onClick={() => switchMode('json')}>JSON</ModeButton>
+          <div style={{ marginLeft: 'auto', alignSelf: 'center', color: '#94a3b8', fontSize: 12 }}>
+            Click section headers to expand · changes only persist after <em>Save portfolio</em>
+          </div>
+        </div>
+
+        {editMode === 'form' ? (
+          <PortfolioForm data={dataObj} onChange={setDataObj} />
+        ) : (
+          <>
+            <p style={{ color: '#94a3b8', fontSize: 13, marginTop: 0 }}>
+              Multilang fields use {`{"en": "...", "th": "..."}`}. For v1 only English is rendered, but adding Thai now
+              will surface once the language toggle is enabled.
+            </p>
+            <textarea
+              value={dataText}
+              onChange={(e) => setDataText(e.target.value)}
+              spellCheck={false}
+              style={{
+                width: '100%', minHeight: 420, padding: 14, fontSize: 12,
+                fontFamily: 'ui-monospace, "JetBrains Mono", monospace',
+                background: '#0b1220', color: '#a5f3fc', border: '1px solid #334155', borderRadius: 6,
+              }}
+            />
+          </>
+        )}
         {dataErr && <div style={{ color: '#fca5a5', marginTop: 8, fontSize: 13 }}>{dataErr}</div>}
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={savePortfolio} disabled={saving} style={btn('primary')}>
