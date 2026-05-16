@@ -135,6 +135,25 @@ function PortfolioCapy({ lang, onLangChange }) {
 
         <div style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 56, alignItems:'center' }}>
           <div>
+            {data.meta.avatar_url && (
+              <div style={{
+                display:'inline-block', position:'relative', marginBottom: 22,
+                transform:'rotate(-3deg)',
+              }}>
+                <div style={{
+                  width: 140, height: 140, borderRadius:'50%', overflow:'hidden',
+                  border: `4px solid ${palette.ink}`, background: palette.paper,
+                  boxShadow:`6px 6px 0 ${palette.ink}`,
+                }}>
+                  <img src={data.meta.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                </div>
+                {/* tiny yuzu sticker on the side */}
+                <div style={{
+                  position:'absolute', top: -8, right: -6, fontSize: 26,
+                  transform:'rotate(12deg)',
+                }}>🍊</div>
+              </div>
+            )}
             <div className="p-hand" style={{ fontSize: 28, color: palette.brown, marginBottom: 8 }}>
               ✿ {L(data.meta.hello, lang)} ({t('no worries!','สบายๆ!')}) ✿
             </div>
@@ -527,8 +546,18 @@ function PortfolioCapy({ lang, onLangChange }) {
           <div className="p-float" style={{ position:'absolute', bottom: 30, right: 50, fontSize: 36, animationDelay:'.7s' }}>🌿</div>
           <div className="p-bob" style={{ position:'absolute', top: 40, right: 70, fontSize: 24, animationDelay:'1.2s' }}>🍃</div>
 
-          <div style={{ position:'relative', margin:'0 auto 16px', width: 100 }}>
-            <CapybaraIcon palette={palette} size={100} />
+          <div style={{ position:'relative', margin:'0 auto 16px', width: 100, height: 100 }}>
+            {data.meta.avatar_url ? (
+              <div style={{
+                width: '100%', height: '100%', borderRadius:'50%', overflow:'hidden',
+                border: `3px solid ${palette.ink}`, background: palette.paper,
+                boxShadow:`4px 4px 0 ${palette.ink}`,
+              }}>
+                <img src={data.meta.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              </div>
+            ) : (
+              <CapybaraIcon palette={palette} size={100} />
+            )}
           </div>
           <div className="p-hand" style={{ fontSize: 30, color: palette.brown, marginBottom: 6, transform:'rotate(-2deg)', display:'inline-block' }}>
             ✿ {t('let\'s be friends!','มาเป็นเพื่อนกัน!')} ✿
@@ -657,6 +686,25 @@ function HotSpringScene({ palette, data, lang }) {
       <div className="p-bob" style={{ position:'absolute', bottom:'28%', left:'50%', transform:'translateX(-50%)', width: 130 }}>
         <CapybaraIcon palette={palette} size={130} />
       </div>
+
+      {/* child polaroid — pinned in the sky corner, only when avatar is set */}
+      {data.meta.avatar_url && (
+        <div className="p-bob" style={{
+          position:'absolute', top: 18, left: 18,
+          background: palette.paper, padding: 6, paddingBottom: 22,
+          border: `2px solid ${palette.ink}`, borderRadius: 4,
+          boxShadow: `3px 3px 0 ${palette.ink}`,
+          transform: 'rotate(-5deg)', width: 78, animationDelay:'.8s',
+        }}>
+          <div style={{ width: '100%', aspectRatio: '1', overflow:'hidden', background: palette.sky }}>
+            <img src={data.meta.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          </div>
+          <div className="p-hand" style={{
+            position:'absolute', bottom: 4, left: 0, right: 0,
+            textAlign:'center', fontSize: 11, color: palette.brownDark,
+          }}>{L(data.meta.nickname, lang)} 🦫</div>
+        </div>
+      )}
 
       {/* floating yuzu around */}
       <div style={{ position:'absolute', bottom:'35%', left:'18%', fontSize: 24 }}>🍊</div>
