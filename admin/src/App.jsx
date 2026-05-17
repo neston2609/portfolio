@@ -4,6 +4,12 @@ import { api } from './api.js';
 import Login from './pages/Login.jsx';
 import Children from './pages/Children.jsx';
 import ChildEditor from './pages/ChildEditor.jsx';
+import ChildProfile from './pages/child/Profile.jsx';
+import ChildPhoto from './pages/child/Photo.jsx';
+import ChildContent from './pages/child/Content.jsx';
+import ChildVisibility from './pages/child/Visibility.jsx';
+import ChildMedia from './pages/child/Media.jsx';
+import ChildDanger from './pages/child/Danger.jsx';
 import Themes from './pages/Themes.jsx';
 import Account from './pages/Account.jsx';
 import GenAI from './pages/GenAI.jsx';
@@ -30,7 +36,15 @@ export default function App() {
           <Route path="/login" element={<Login onLogin={setMe} />} />
           <Route path="/" element={<Navigate to="/children" replace />} />
           <Route path="/children" element={<Children />} />
-          <Route path="/children/:id" element={<ChildEditor />} />
+          <Route path="/children/:id" element={<ChildEditor />}>
+            <Route index element={<Navigate to="profile" replace />} />
+            <Route path="profile" element={<ChildProfile />} />
+            <Route path="photo" element={<ChildPhoto />} />
+            <Route path="content" element={<ChildContent />} />
+            <Route path="visibility" element={<ChildVisibility />} />
+            <Route path="media" element={<ChildMedia />} />
+            <Route path="danger" element={<ChildDanger />} />
+          </Route>
           <Route path="/themes" element={<Themes />} />
           <Route path="/genai" element={<GenAI />} />
           <Route path="/account" element={<Account me={me} />} />
