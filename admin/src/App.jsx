@@ -7,6 +7,7 @@ import ChildEditor from './pages/ChildEditor.jsx';
 import ChildProfile from './pages/child/Profile.jsx';
 import ChildPhoto from './pages/child/Photo.jsx';
 import ChildContent from './pages/child/Content.jsx';
+import ChildContentSection from './pages/child/ContentSection.jsx';
 import ChildVisibility from './pages/child/Visibility.jsx';
 import ChildMedia from './pages/child/Media.jsx';
 import ChildDanger from './pages/child/Danger.jsx';
@@ -40,7 +41,10 @@ export default function App() {
             <Route index element={<Navigate to="profile" replace />} />
             <Route path="profile" element={<ChildProfile />} />
             <Route path="photo" element={<ChildPhoto />} />
-            <Route path="content" element={<ChildContent />} />
+            <Route path="content" element={<ChildContent />}>
+              <Route index element={<Navigate to="hero" replace />} />
+              <Route path=":section" element={<ChildContentSection />} />
+            </Route>
             <Route path="visibility" element={<ChildVisibility />} />
             <Route path="media" element={<ChildMedia />} />
             <Route path="danger" element={<ChildDanger />} />

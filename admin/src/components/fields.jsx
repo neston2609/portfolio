@@ -76,8 +76,12 @@ export function MultilangField({ label, value, onChange, placeholder, multiline 
 }
 
 // Collapsible section wrapper. Saves vertical space when editing big portfolios.
-export function Section({ title, badge, defaultOpen = false, children }) {
+// When `bare` is true, the wrapper + collapse UI is dropped and only the body
+// is rendered — useful when the editor is already inside its own panel
+// (e.g. on a Content sub-page with one section per route).
+export function Section({ title, badge, defaultOpen = false, bare = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
+  if (bare) return <div style={{ display: 'grid', gap: 12 }}>{children}</div>;
   return (
     <section style={{
       marginTop: 14, background: '#0f172a', border: '1px solid #1f2937', borderRadius: 8, overflow: 'hidden',

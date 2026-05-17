@@ -19,22 +19,7 @@ export default function PortfolioForm({ data, onChange, childId, portfolioUrl, a
 
   return (
     <div>
-      {/* META — non-name fields that appear in hero/nav of the theme */}
-      <Section title="Hero / meta" defaultOpen>
-        <Row cols={2}>
-          <MultilangField label="Role / tagline" value={meta.role} onChange={(v) => setMeta({ role: v })} placeholder="Tiny Explorer" />
-          <DateField label="Date of Birth (age is calculated for the portfolio)" value={meta.dob} onChange={(v) => setMeta({ dob: v, age: undefined })} hint={meta.dob ? `currently ${ageFromDob(meta.dob)} years old` : 'YYYY-MM-DD'} />
-          <MultilangField label="Grade" value={meta.grade} onChange={(v) => setMeta({ grade: v })} placeholder="Grade 6" />
-          <MultilangField label="School (display)" value={meta.school} onChange={(v) => setMeta({ school: v })} />
-          <MultilangField label="Location" value={meta.location} onChange={(v) => setMeta({ location: v })} placeholder="Bangkok" />
-          <MultilangField label="Motto" value={meta.motto} onChange={(v) => setMeta({ motto: v })} placeholder="Curious + Brave = ME!" />
-          <MultilangField label="Hello phrase" value={meta.hello} onChange={(v) => setMeta({ hello: v })} placeholder="Hi there!" />
-          <MultilangField label="Catch / pow word" value={meta.catch} onChange={(v) => setMeta({ catch: v })} placeholder="POW!" />
-          <MultilangField label="Availability" value={meta.available} onChange={(v) => setMeta({ available: v })} placeholder="Ready for adventure!" />
-          <TextField label="Contact email" value={meta.email} onChange={(v) => setMeta({ email: v })} placeholder="kong@example.com" />
-        </Row>
-      </Section>
-
+      <MetaEditor data={data} onChange={onChange} />
       <AboutEditor value={data.about} onChange={setSection('about')} />
       <PowersEditor value={data.powers} onChange={setSection('powers')} />
       <EducationEditor value={data.education} onChange={setSection('education')} />
@@ -52,10 +37,31 @@ export default function PortfolioForm({ data, onChange, childId, portfolioUrl, a
 
 // ---- per-section editors --------------------------------------------------
 
-function AboutEditor({ value, onChange }) {
+function MetaEditor({ data, onChange, bare = false }) {
+  const meta = data.meta || {};
+  const setMeta = (patch) => onChange({ ...data, meta: { ...meta, ...patch } });
+  return (
+    <Section title="Hero / meta" defaultOpen bare={bare}>
+      <Row cols={2}>
+        <MultilangField label="Role / tagline" value={meta.role} onChange={(v) => setMeta({ role: v })} placeholder="Tiny Explorer" />
+        <DateField label="Date of Birth (age is calculated for the portfolio)" value={meta.dob} onChange={(v) => setMeta({ dob: v, age: undefined })} hint={meta.dob ? `currently ${ageFromDob(meta.dob)} years old` : 'YYYY-MM-DD'} />
+        <MultilangField label="Grade" value={meta.grade} onChange={(v) => setMeta({ grade: v })} placeholder="Grade 6" />
+        <MultilangField label="School (display)" value={meta.school} onChange={(v) => setMeta({ school: v })} />
+        <MultilangField label="Location" value={meta.location} onChange={(v) => setMeta({ location: v })} placeholder="Bangkok" />
+        <MultilangField label="Motto" value={meta.motto} onChange={(v) => setMeta({ motto: v })} placeholder="Curious + Brave = ME!" />
+        <MultilangField label="Hello phrase" value={meta.hello} onChange={(v) => setMeta({ hello: v })} placeholder="Hi there!" />
+        <MultilangField label="Catch / pow word" value={meta.catch} onChange={(v) => setMeta({ catch: v })} placeholder="POW!" />
+        <MultilangField label="Availability" value={meta.available} onChange={(v) => setMeta({ available: v })} placeholder="Ready for adventure!" />
+        <TextField label="Contact email" value={meta.email} onChange={(v) => setMeta({ email: v })} placeholder="kong@example.com" />
+      </Row>
+    </Section>
+  );
+}
+
+function AboutEditor({ value, onChange, bare = false }) {
   const v = value || {};
   return (
-    <Section title="About" badge={(v.favorites || []).length + ' favorites'}>
+    <Section title="About" badge={(v.favorites || []).length + ' favorites'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="About Me" />
       <MultilangField label="Intro paragraph" value={v.intro} onChange={(x) => onChange({ ...v, intro: x })} multiline />
       <ArrayField
@@ -75,10 +81,10 @@ function AboutEditor({ value, onChange }) {
   );
 }
 
-function PowersEditor({ value, onChange }) {
+function PowersEditor({ value, onChange, bare = false }) {
   const v = value || {};
   return (
-    <Section title="Powers / skills" badge={(v.items || []).length + ' items'}>
+    <Section title="Powers / skills" badge={(v.items || []).length + ' items'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Superpowers" />
       <ArrayField
         items={v.items}
@@ -98,10 +104,10 @@ function PowersEditor({ value, onChange }) {
   );
 }
 
-function EducationEditor({ value, onChange }) {
+function EducationEditor({ value, onChange, bare = false }) {
   const v = value || {};
   return (
-    <Section title="Education" badge={(v.items || []).length + ' entries'}>
+    <Section title="Education" badge={(v.items || []).length + ' entries'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="School" />
       <ArrayField
         items={v.items}
@@ -123,10 +129,10 @@ function EducationEditor({ value, onChange }) {
   );
 }
 
-function ProjectsEditor({ value, onChange }) {
+function ProjectsEditor({ value, onChange, bare = false }) {
   const v = value || {};
   return (
-    <Section title="Projects / quests" badge={(v.items || []).length + ' projects'}>
+    <Section title="Projects / quests" badge={(v.items || []).length + ' projects'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="My Quests" />
       <ArrayField
         items={v.items}
@@ -152,12 +158,12 @@ function ProjectsEditor({ value, onChange }) {
   );
 }
 
-function YoutubeEditor({ value, onChange }) {
+function YoutubeEditor({ value, onChange, bare = false }) {
   const v = value || {};
   const channel = v.channel || {};
   const setChannel = (patch) => onChange({ ...v, channel: { ...channel, ...patch } });
   return (
-    <Section title="YouTube" badge={(v.items || []).length + ' videos (manual fallback)'}>
+    <Section title="YouTube" badge={(v.items || []).length + ' videos (manual fallback)'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="My YouTube Channel" />
 
       <div style={{ padding: 12, border: '1px solid #14532d', borderRadius: 8, background: '#052e16', color: '#bbf7d0', fontSize: 13 }}>
@@ -210,12 +216,12 @@ function YoutubeEditor({ value, onChange }) {
   );
 }
 
-function ScratchEditor({ value, onChange }) {
+function ScratchEditor({ value, onChange, bare = false }) {
   const v = value || {};
   const profile = v.profile || {};
   const setProfile = (patch) => onChange({ ...v, profile: { ...profile, ...patch } });
   return (
-    <Section title="Scratch" badge={(v.items || []).length + ' projects (manual fallback)'}>
+    <Section title="Scratch" badge={(v.items || []).length + ' projects (manual fallback)'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="My Scratch Projects" />
       <MultilangField label="Intro paragraph" value={v.intro} onChange={(x) => onChange({ ...v, intro: x })} multiline />
 
@@ -263,10 +269,10 @@ function ScratchEditor({ value, onChange }) {
   );
 }
 
-function GalleryEditor({ value, onChange, fileCtx, galleryCtx }) {
+function GalleryEditor({ value, onChange, fileCtx, galleryCtx, bare = false }) {
   const v = value || {};
   return (
-    <Section title="Gallery" badge={(v.items || []).length + ' tiles'}>
+    <Section title="Gallery" badge={(v.items || []).length + ' tiles'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Gallery" />
       <MultilangField label="Intro" value={v.intro} onChange={(x) => onChange({ ...v, intro: x })} />
       <ZipImporter
@@ -304,19 +310,19 @@ function GalleryEditor({ value, onChange, fileCtx, galleryCtx }) {
   );
 }
 
-function AchievementsEditor({ value, onChange }) {
+function AchievementsEditor({ value, onChange, bare = false }) {
   const v = value || {};
   return (
-    <Section title="Achievements (header only — Awards + Certificates render inside)">
+    <Section title="Achievements (header only — Awards + Certificates render inside)" bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Achievements" />
     </Section>
   );
 }
 
-function AwardsEditor({ value, onChange, fileCtx, extractCtx }) {
+function AwardsEditor({ value, onChange, fileCtx, extractCtx, bare = false }) {
   const v = value || {};
   return (
-    <Section title="Awards / Trophies" badge={(v.items || []).length + ' awards'}>
+    <Section title="Awards / Trophies" badge={(v.items || []).length + ' awards'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Trophies" />
       <ArrayField
         items={v.items}
@@ -391,10 +397,10 @@ function normalizeRank(input) {
   return null;
 }
 
-function CertificatesEditor({ value, onChange, fileCtx, extractCtx }) {
+function CertificatesEditor({ value, onChange, fileCtx, extractCtx, bare = false }) {
   const v = value || {};
   return (
-    <Section title="Certificates" badge={(v.items || []).length + ' certificates'}>
+    <Section title="Certificates" badge={(v.items || []).length + ' certificates'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Certificates" />
 
       <div style={{ padding: 12, border: '1px dashed #334155', borderRadius: 8, background: '#0b1220' }}>
@@ -457,10 +463,10 @@ function CertificatesEditor({ value, onChange, fileCtx, extractCtx }) {
   );
 }
 
-function SocialEditor({ value, onChange, fileCtx }) {
+function SocialEditor({ value, onChange, fileCtx, bare = false }) {
   const v = value || {};
   return (
-    <Section title="Social / Contact" badge={(v.items || []).length + ' links'}>
+    <Section title="Social / Contact" badge={(v.items || []).length + ' links'} bare={bare}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Send me a message" />
       <p style={{ color: '#94a3b8', fontSize: 12, margin: 0 }}>
         Themes show an icon instead of the label. Built-in icons are auto-picked for YouTube, Facebook, Instagram,
@@ -626,3 +632,12 @@ function Select({ label, value, onChange, options }) {
     </label>
   );
 }
+
+// Per-section editors exposed for the Content sub-page routes. Each takes
+// `bare={true}` to render without the collapsible Section wrapper.
+export {
+  MetaEditor, AboutEditor, PowersEditor, EducationEditor, ProjectsEditor,
+  YoutubeEditor, ScratchEditor, GalleryEditor, AchievementsEditor,
+  AwardsEditor, CertificatesEditor, SocialEditor,
+  ageFromDob,
+};
