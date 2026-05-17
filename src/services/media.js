@@ -61,9 +61,16 @@ async function deleteMedia(childId, mediaId) {
 // Walk any JSON value, collecting media IDs from /_media/<childId>/<mediaId>
 // URLs. Used by the sweeper to find which uploads the saved portfolio still
 // references — anything not in the result set is fair game to delete.
+//
+// The path component after the childId can be anything that isn't a path
+// separator, whitespace, or query/fragment delimiter — we don't enforce a
+// UUID shape so that a cache-busting suffix (?v=1), a future ID format
+// change, or a stray newline can't accidentally leak files we shouldn't
+// delete. The DB lookup in sweepOrphans validates against actual rows.
 function collectMediaRefs(childId, value) {
   const ids = new Set();
-  const re = new RegExp(`/_media/${childId}/([0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12})`, 'gi');
+  const safeChildId = String(childId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`/_media/${safeChildId}/([^/\\s"'?#)]+)`, 'gi');
   (function walk(node) {
     if (node == null) return;
     if (typeof node === 'string') {
@@ -90,14 +97,16 @@ async function sweepOrphans(childId) {
   const referenced = collectMediaRefs(childId, portfolio.rows[0]?.data || {});
   if (child.rows[0].avatar_media_id) referenced.add(String(child.rows[0].avatar_media_id).toLowerCase());
 
-  const all = await pool.query('SELECT id, storage_path FROM media WHERE child_id = $1', [childId]);
+  const all = await pool.query('SELECT id, filename, storage_path FROM media WHERE child_id = $1', [childId]);
   let removed = 0;
   for (const m of all.rows) {
     if (referenced.has(String(m.id).toLowerCase())) continue;
     try { fs.unlinkSync(m.storage_path); } catch (_) {}
     await pool.query('DELETE FROM media WHERE id = $1', [m.id]);
+    console.log(`[media] swept orphan ${m.id} (${m.filename}) from child ${childId}`);
     removed++;
   }
+  if (removed > 0) console.log(`[media] sweep complete for child ${childId}: ${removed} file(s) removed, ${referenced.size} kept`);
   return removed;
 }
 

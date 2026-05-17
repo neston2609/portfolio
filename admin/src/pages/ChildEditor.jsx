@@ -39,6 +39,7 @@ export default function ChildEditor() {
   const [savedAt, setSavedAt] = useState(null);
   const [aiAvailable, setAiAvailable] = useState(false);
   const [loadErr, setLoadErr] = useState(null);
+  const [orphansRemoved, setOrphansRemoved] = useState(0);
 
   async function loadAll() {
     setLoadErr(null);
@@ -115,11 +116,14 @@ export default function ChildEditor() {
     }
     setDataErr(null); setSaving(true);
     try {
-      await api.put(`/children/${id}/portfolio`, { data: payload, visibility });
+      const result = await api.put(`/children/${id}/portfolio`, { data: payload, visibility });
       setSavedAt(new Date());
+      setOrphansRemoved(result?.orphans_removed || 0);
       // Keep both views in sync after save
       setDataObj(payload);
       setDataText(JSON.stringify(payload, null, 2));
+      // Refresh the media list — sweep may have deleted entries.
+      api.get(`/children/${id}/media`).then(setMedia).catch(() => {});
     } catch (e) { setDataErr(e.message); }
     finally { setSaving(false); }
   }
@@ -247,7 +251,16 @@ export default function ChildEditor() {
           <button onClick={savePortfolio} disabled={saving} style={btn('primary')}>
             {saving ? 'Saving…' : 'Save portfolio'}
           </button>
-          {savedAt && <span style={{ color: '#94a3b8', fontSize: 13 }}>Saved {savedAt.toLocaleTimeString()}</span>}
+          {savedAt && (
+            <span style={{ color: '#94a3b8', fontSize: 13 }}>
+              Saved {savedAt.toLocaleTimeString()}
+              {orphansRemoved > 0 && (
+                <span style={{ color: '#86efac', marginLeft: 8 }}>
+                  · cleaned {orphansRemoved} unused file{orphansRemoved === 1 ? '' : 's'}
+                </span>
+              )}
+            </span>
+          )}
         </div>
       </Panel>
 
