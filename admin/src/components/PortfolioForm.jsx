@@ -316,13 +316,17 @@ function AwardsEditor({ value, onChange, fileCtx, extractCtx }) {
         items={v.items}
         onChange={(x) => onChange({ ...v, items: x })}
         itemLabel="award"
-        defaultItem={() => ({ year: String(new Date().getFullYear()), rank: { en: 'GOLD' }, medal: '🥇', name: { en: '' }, file_url: '' })}
+        defaultItem={() => ({ year: String(new Date().getFullYear()), rank: 'gold', name: { en: '' }, file_url: '' })}
         renderItem={(it, update) => (
           <>
-            <Row cols={3}>
+            <Row cols={2}>
               <TextField label="Year" value={it.year} onChange={(x) => update({ year: x })} />
-              <MultilangField label="Rank" value={it.rank} onChange={(x) => update({ rank: x })} placeholder="GOLD" />
-              <TextField label="Medal emoji" value={it.medal} onChange={(x) => update({ medal: x })} placeholder="🥇" />
+              <Select
+                label="Rank (medal emoji is automatic)"
+                value={toRankCode(it.rank)}
+                onChange={(x) => update({ rank: x, medal: undefined })}
+                options={RANK_OPTIONS}
+              />
             </Row>
             <MultilangField label="Award name" value={it.name} onChange={(x) => update({ name: x })} />
             <FileAttachField
@@ -337,7 +341,8 @@ function AwardsEditor({ value, onChange, fileCtx, extractCtx }) {
               apply={(d) => update({
                 name: d.title ? { en: d.title } : it.name,
                 year: d.year || it.year,
-                rank: d.rank ? { en: d.rank } : it.rank,
+                rank: normalizeRank(d.rank) || it.rank,
+                medal: undefined,
               })}
             />
           </>
@@ -345,6 +350,39 @@ function AwardsEditor({ value, onChange, fileCtx, extractCtx }) {
       />
     </Section>
   );
+}
+
+// Rank dropdown options + the migration helpers that absorb legacy data.
+const RANK_OPTIONS = [
+  ['gold',        '🥇 Gold'],
+  ['silver',      '🥈 Silver'],
+  ['bronze',      '🥉 Bronze'],
+  ['participant', '🎖️ Participant'],
+];
+const KNOWN_RANKS = new Set(RANK_OPTIONS.map(([v]) => v));
+
+// Translate any historical rank value (multilang object, free text from
+// Claude, legacy 'GOLD'/'SILVER') into the new enum code; falls back to
+// 'gold' if we can't recognize it so the dropdown is never blank.
+function toRankCode(rank) {
+  if (typeof rank === 'string' && KNOWN_RANKS.has(rank)) return rank;
+  return normalizeRank(rank) || 'gold';
+}
+
+// Pattern match anything that looks like a rank — used by both the form
+// (migrating legacy values) and the AI extract button (Claude returns
+// strings like "GOLD", "1st Place", "Silver Medal").
+function normalizeRank(input) {
+  if (input == null) return null;
+  // Multilang object — try .en first, then .th, then any value
+  let s = typeof input === 'string' ? input : (input.en || input.th || Object.values(input)[0] || '');
+  s = String(s).toLowerCase();
+  if (!s) return null;
+  if (s.includes('gold') || /\b1st\b|\bfirst\b|^1$/.test(s)) return 'gold';
+  if (s.includes('silver') || /\b2nd\b|\bsecond\b|^2$/.test(s)) return 'silver';
+  if (s.includes('bronze') || /\b3rd\b|\bthird\b|^3$/.test(s)) return 'bronze';
+  if (s.includes('participant') || s.includes('finalist') || s.includes('completion')) return 'participant';
+  return null;
 }
 
 function CertificatesEditor({ value, onChange, fileCtx, extractCtx }) {

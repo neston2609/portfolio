@@ -500,16 +500,21 @@ function PortfolioCapy({ lang, onLangChange }) {
       <section id="achievements" style={{ ...pWrap, paddingBlock: 40 }} className="p-section">
         <CapyHeader num="08" title={L(data.achievements.title, lang)} subtitle={t('proud moments','ช่วงเวลาภาคภูมิใจ')} palette={palette} />
 
-        {/* Sub-row: TROPHIES */}
+        {/* Sub-row: TROPHIES — hidden when admin unchecks Awards */}
+        {!data.awards.__hidden && (<>
         <div style={{ display:'flex', alignItems:'baseline', gap: 12, marginBottom: 18 }}>
           <span className="p-display" style={{ fontSize: 24, color: palette.brownDark }}>★ {L(data.awards.title, lang)}</span>
           <span className="p-hand" style={{ fontSize: 22, color: palette.brown }}>· {t('big wins','รางวัลใหญ่')}</span>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 16, marginBottom: 36 }}>
-          {data.awards.items.map((a, i) => (
+          {data.awards.items.map((a, i) => {
+            const r = rankMeta(a.rank);
+            const emoji = r ? r.emoji : (a.medal || '🏅');
+            const label = r ? (r[lang] || r.en) : L(a.rank, lang);
+            return (
             <div key={i} className="p-card hover" style={{ padding: 26, textAlign:'center', background:['#fff8e8', palette.yuzu + '88', '#fff8e8'][i] }}>
-              <div className="p-bob" style={{ fontSize: 76, lineHeight: 1, marginBottom: 4 }}>{a.medal}</div>
-              <div className="p-display" style={{ fontSize: 26, color: palette.brownDark }}>{L(a.rank, lang)}</div>
+              <div className="p-bob" style={{ fontSize: 76, lineHeight: 1, marginBottom: 4 }}>{emoji}</div>
+              <div className="p-display" style={{ fontSize: 26, color: palette.brownDark }}>{label}</div>
               <div className="p-mono" style={{ fontSize: 11, marginBlock: 8, color: palette.brown }}>· {a.year} ·</div>
               <div className="p-round" style={{ fontSize: 16, lineHeight: 1.4 }}>{L(a.name, lang)}</div>
               {a.file_url && (
@@ -530,13 +535,16 @@ function PortfolioCapy({ lang, onLangChange }) {
                   </a>
                 )
               )}
-            </div>
-          ))}
+            </div>);
+          })}
         </div>
+        </>)}
 
-        {/* Sub-row: CERTIFICATES */}
+        {/* Sub-row: CERTIFICATES — hidden when admin unchecks Certificates */}
+        {!data.certificates.__hidden && (<>
         <div style={{ display:'flex', alignItems:'baseline', gap: 12, marginBottom: 18 }}>
           <span className="p-display" style={{ fontSize: 24, color: palette.brownDark }}>★ {L(data.certificates.title, lang)}</span>
+          <span className="p-hand" style={{ fontSize: 22, color: palette.brown }}>· {t('proof of skills','หลักฐานทักษะ')}</span>
         </div>
         <div className="p-card" style={{ padding: 24 }}>
           <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 24, alignItems:'center' }}>
@@ -567,6 +575,7 @@ function PortfolioCapy({ lang, onLangChange }) {
             ))}
           </div>
         </div>
+        </>)}
       </section>
 
       {/* CONTACT */}
@@ -782,6 +791,19 @@ function LangToggleCapy({ lang, onLangChange, palette }) {
       ))}
     </div>
   );
+}
+
+// Maps a rank enum to label + medal emoji. Returns null for legacy values
+// (multilang objects or free text), so the caller falls back to L() + a.medal.
+function rankMeta(rank) {
+  if (typeof rank !== 'string') return null;
+  const map = {
+    gold:        { en: 'GOLD',        th: 'ทอง',       emoji: '🥇' },
+    silver:      { en: 'SILVER',      th: 'เงิน',      emoji: '🥈' },
+    bronze:      { en: 'BRONZE',      th: 'ทองแดง',    emoji: '🥉' },
+    participant: { en: 'PARTICIPANT', th: 'เข้าร่วม', emoji: '🎖️' },
+  };
+  return map[rank.toLowerCase()] || null;
 }
 
 function GalleryLightbox({ items, index, onChange, onClose, lang }) {

@@ -479,16 +479,21 @@ function PortfolioComic({ lang, onLangChange }) {
       <section id="achievements" style={{ ...cWrap, paddingBlock: 48 }} className="c-section">
         <ChapterHeader num="08" title={L(data.achievements.title, lang)} palette={palette} />
 
-        {/* Sub-row: TROPHIES */}
+        {/* Sub-row: TROPHIES — hidden when admin unchecks Awards */}
+        {!data.awards.__hidden && (<>
         <div style={{ display:'flex', alignItems:'baseline', gap: 12, marginBottom: 16 }}>
           <span className="c-display" style={{ fontSize: 24, color: palette.red }}>★ {L(data.awards.title, lang)}</span>
           <span className="c-hand" style={{ fontSize: 17, color: palette.inkSoft }}>· {t('big wins','รางวัลใหญ่')}</span>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 20, marginBottom: 36 }}>
-          {data.awards.items.map((a, i) => (
+          {data.awards.items.map((a, i) => {
+            const r = rankMeta(a.rank);
+            const emoji = r ? r.emoji : (a.medal || '🏅');
+            const label = r ? (r[lang] || r.en) : L(a.rank, lang);
+            return (
             <div key={i} className="c-panel c-card" style={{ padding: 24, textAlign:'center' }}>
-              <div className="c-float" style={{ fontSize: 80, lineHeight: 1, marginBottom: 8, display:'inline-block' }}>{a.medal}</div>
-              <div className="c-display" style={{ fontSize: 28, color: palette.red, marginBottom: 4 }}>{L(a.rank, lang)}</div>
+              <div className="c-float" style={{ fontSize: 80, lineHeight: 1, marginBottom: 8, display:'inline-block' }}>{emoji}</div>
+              <div className="c-display" style={{ fontSize: 28, color: palette.red, marginBottom: 4 }}>{label}</div>
               <div className="c-mono" style={{ fontSize: 12, marginBottom: 8 }}>{a.year}</div>
               <div className="c-hand" style={{ fontSize: 18, lineHeight: 1.3 }}>{L(a.name, lang)}</div>
               {a.file_url && (
@@ -509,13 +514,16 @@ function PortfolioComic({ lang, onLangChange }) {
                   </a>
                 )
               )}
-            </div>
-          ))}
+            </div>);
+          })}
         </div>
+        </>)}
 
-        {/* Sub-row: CERTIFICATES */}
+        {/* Sub-row: CERTIFICATES — hidden when admin unchecks Certificates */}
+        {!data.certificates.__hidden && (<>
         <div style={{ display:'flex', alignItems:'baseline', gap: 12, marginBottom: 16 }}>
           <span className="c-display" style={{ fontSize: 24, color: palette.blue }}>★ {L(data.certificates.title, lang)}</span>
+          <span className="c-hand" style={{ fontSize: 17, color: palette.inkSoft }}>· {t('proof of skills','หลักฐานทักษะ')}</span>
         </div>
         <div className="c-panel" style={{ padding: 24 }}>
           <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 24, alignItems:'center' }}>
@@ -550,6 +558,7 @@ function PortfolioComic({ lang, onLangChange }) {
             ))}
           </div>
         </div>
+        </>)}
       </section>
 
       {/* CONTACT - final page */}
@@ -665,6 +674,21 @@ function LangToggleComic({ lang, onLangChange, palette }) {
       ))}
     </div>
   );
+}
+
+// Maps a rank enum code ('gold' | 'silver' | 'bronze' | 'participant') to
+// its display label per language plus the medal emoji. Returns null for
+// legacy values (multilang objects or free text), which the caller falls
+// back on via L() + a.medal.
+function rankMeta(rank) {
+  if (typeof rank !== 'string') return null;
+  const map = {
+    gold:        { en: 'GOLD',        th: 'ทอง',       emoji: '🥇' },
+    silver:      { en: 'SILVER',      th: 'เงิน',      emoji: '🥈' },
+    bronze:      { en: 'BRONZE',      th: 'ทองแดง',    emoji: '🥉' },
+    participant: { en: 'PARTICIPANT', th: 'เข้าร่วม', emoji: '🎖️' },
+  };
+  return map[rank.toLowerCase()] || null;
 }
 
 // Theme-agnostic gallery lightbox. ESC closes; ←/→ cycles through items

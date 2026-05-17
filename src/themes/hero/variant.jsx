@@ -516,17 +516,22 @@ function PortfolioHero({ lang, onLangChange }) {
       <section id="achievements" style={{ ...hWrap, paddingBlock: 40 }} className="h-section">
         <SectionTitle num="08" title={L(data.achievements.title, lang)} palette={palette} />
 
-        {/* Sub-row: TROPHIES */}
+        {/* Sub-row: TROPHIES — hidden when admin unchecks Awards */}
+        {!data.awards.__hidden && (<>
         <div style={{ display:'flex', alignItems:'baseline', gap: 14, marginBottom: 18 }}>
           <span className="h-pixel" style={{ fontSize: 11, color: palette.gold, letterSpacing:'.12em' }}>▸ TROPHIES</span>
           <span className="h-display" style={{ fontSize: 22, color: palette.inkLight }}>{L(data.awards.title, lang)}</span>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 16, marginBottom: 40 }}>
-          {data.awards.items.map((a, i) => (
+          {data.awards.items.map((a, i) => {
+            const r = rankMeta(a.rank);
+            const emoji = r ? r.emoji : (a.medal || '🏅');
+            const label = r ? (r[lang] || r.en) : L(a.rank, lang);
+            return (
             <div key={i} className="h-card hover" style={{ padding: 28, textAlign:'center', position:'relative', overflow:'hidden' }}>
               <div className="h-grid-bg" style={{ position:'absolute', inset:0, opacity: .15 }} />
               <div style={{ position:'relative' }}>
-                <div className="h-float" style={{ fontSize: 78, marginBottom: 6, lineHeight: 1, filter: `drop-shadow(0 6px 12px ${palette.gold}66)` }}>{a.medal}</div>
+                <div className="h-float" style={{ fontSize: 78, marginBottom: 6, lineHeight: 1, filter: `drop-shadow(0 6px 12px ${palette.gold}66)` }}>{emoji}</div>
                 <div style={{
                   display:'inline-block',
                   background: palette.gold, color: palette.ink,
@@ -534,7 +539,7 @@ function PortfolioHero({ lang, onLangChange }) {
                   fontFamily:'"Lilita One"', fontSize: 14, letterSpacing:'.06em',
                   border: `2px solid ${palette.ink}`,
                   marginBottom: 12,
-                }}>{L(a.rank, lang)}</div>
+                }}>{label}</div>
                 <div style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.3, color: palette.inkLight }}>{L(a.name, lang)}</div>
                 <div className="h-pixel" style={{ fontSize: 10, color: '#94a3b8', marginTop: 10, letterSpacing:'.1em' }}>· {a.year} ·</div>
                 {a.file_url && (
@@ -556,11 +561,13 @@ function PortfolioHero({ lang, onLangChange }) {
                   )
                 )}
               </div>
-            </div>
-          ))}
+            </div>);
+          })}
         </div>
+        </>)}
 
-        {/* Sub-row: CERTIFICATES */}
+        {/* Sub-row: CERTIFICATES — hidden when admin unchecks Certificates */}
+        {!data.certificates.__hidden && (<>
         <div style={{ display:'flex', alignItems:'baseline', gap: 14, marginBottom: 18 }}>
           <span className="h-pixel" style={{ fontSize: 11, color: palette.gold, letterSpacing:'.12em' }}>▸ ITEMS</span>
           <span className="h-display" style={{ fontSize: 22, color: palette.inkLight }}>{L(data.certificates.title, lang)}</span>
@@ -610,6 +617,7 @@ function PortfolioHero({ lang, onLangChange }) {
             ))}
           </div>
         </div>
+        </>)}
       </section>
 
       {/* CONTACT */}
@@ -785,6 +793,19 @@ function LangToggleHero({ lang, onLangChange, palette }) {
       ))}
     </div>
   );
+}
+
+// Maps a rank enum to label + medal emoji. Returns null for legacy values
+// (multilang objects or free text), so the caller falls back to L() + a.medal.
+function rankMeta(rank) {
+  if (typeof rank !== 'string') return null;
+  const map = {
+    gold:        { en: 'GOLD',        th: 'ทอง',       emoji: '🥇' },
+    silver:      { en: 'SILVER',      th: 'เงิน',      emoji: '🥈' },
+    bronze:      { en: 'BRONZE',      th: 'ทองแดง',    emoji: '🥉' },
+    participant: { en: 'PARTICIPANT', th: 'เข้าร่วม', emoji: '🎖️' },
+  };
+  return map[rank.toLowerCase()] || null;
 }
 
 function GalleryLightbox({ items, index, onChange, onClose, lang }) {
