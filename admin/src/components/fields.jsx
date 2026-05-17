@@ -4,6 +4,7 @@
 // with the future Thai toggle even though v1 only renders English.
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export const inp = {
   background: '#0b1220', color: '#fffaf0', border: '1px solid #334155',
@@ -172,9 +173,22 @@ export function Row({ children, cols = 2 }) {
 export function FileAttachField({ label, value, onChange, uploadUrl, previewBase, accept, api }) {
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState(null);
+  const [hover, setHover] = React.useState(null); // { x, y, side } for fixed-position popover
   const isPdf = value && /\.pdf(\?|$)/i.test(value);
   const isImg = value && /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(value);
   const absUrl = value ? ((previewBase || '') + value) : null;
+
+  // Pin the popover to the thumbnail, then flip to the left side when there
+  // isn't room on the right. Clamps vertically inside the viewport.
+  function showPreview(e) {
+    if (!isImg) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const previewMax = Math.min(window.innerWidth * 0.45, 480);
+    const fitsRight = r.right + previewMax + 24 <= window.innerWidth;
+    const x = fitsRight ? r.right + 10 : Math.max(8, r.left - previewMax - 10);
+    const y = Math.max(8, Math.min(r.top, window.innerHeight - previewMax - 40));
+    setHover({ x, y, max: previewMax });
+  }
 
   async function onPick(e) {
     const file = e.target.files?.[0];
@@ -197,11 +211,15 @@ export function FileAttachField({ label, value, onChange, uploadUrl, previewBase
         display: 'flex', gap: 10, alignItems: 'center', padding: 8,
         border: '1px dashed #334155', borderRadius: 6, background: '#0b1220',
       }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 4, background: '#1f2937',
-          display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden',
-          color: '#64748b', fontSize: 10, textAlign: 'center',
-        }}>
+        <div
+          onMouseEnter={showPreview}
+          onMouseLeave={() => setHover(null)}
+          style={{
+            width: 56, height: 56, borderRadius: 4, background: '#1f2937',
+            display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden',
+            color: '#64748b', fontSize: 10, textAlign: 'center',
+            cursor: isImg ? 'zoom-in' : 'default',
+          }}>
           {isImg ? (
             <img src={absUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : isPdf ? (
@@ -230,6 +248,20 @@ export function FileAttachField({ label, value, onChange, uploadUrl, previewBase
           }}>Remove</button>
         )}
       </div>
+      {hover && isImg && createPortal(
+        <div style={{
+          position: 'fixed', left: hover.x, top: hover.y, zIndex: 9999,
+          pointerEvents: 'none',
+          background: '#0b1220', border: '2px solid #fbbf24', borderRadius: 8,
+          boxShadow: '0 16px 48px rgba(0,0,0,0.6)', padding: 6,
+        }}>
+          <img src={absUrl} alt="" style={{
+            display: 'block', maxWidth: hover.max, maxHeight: hover.max,
+            borderRadius: 4,
+          }} />
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
