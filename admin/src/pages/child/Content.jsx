@@ -3,8 +3,8 @@
 // into the shared dataObj (lives in ChildEditor), Save persists the whole
 // portfolio. Switching tabs preserves unsaved edits.
 
-import React, { useState } from 'react';
-import { NavLink, Outlet, useOutletContext } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { NavLink, Outlet, useOutletContext, useLocation } from 'react-router-dom';
 import { btn } from '../../App.jsx';
 import { Panel } from './_shared.jsx';
 
@@ -24,32 +24,51 @@ const SECTIONS = [
 
 export default function Content() {
   const ctx = useOutletContext();
-  const { dataObj, dataText, setDataText, savePortfolio } = ctx;
+  const { dataObj, setDataObj, dataText, setDataText, savePortfolio } = ctx;
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [orphansRemoved, setOrphansRemoved] = useState(0);
   const [err, setErr] = useState(null);
 
-  // Editing in Raw JSON view writes to dataText; saving needs to parse it.
-  // For all other tabs the form mutates dataObj directly, so we save that.
+  const location = useLocation();
+  const isJsonTab = location.pathname.endsWith('/json');
+
+  // Keep dataText and dataObj in sync across tab navigation so JSON edits
+  // don't get silently dropped (and form edits show up in JSON view).
+  const prevPathRef = useRef(location.pathname);
+  useEffect(() => {
+    const wasJson = prevPathRef.current.endsWith('/json');
+    if (isJsonTab && !wasJson) {
+      // Entering JSON tab: serialize current form state.
+      setDataText(JSON.stringify(dataObj, null, 2));
+    } else if (!isJsonTab && wasJson) {
+      // Leaving JSON tab: parse the textarea back into the form state.
+      // If the JSON is invalid, dataObj is left untouched and the next
+      // save will use the form's current state.
+      try { setDataObj(JSON.parse(dataText)); setErr(null); }
+      catch (e) { setErr('Invalid JSON in Raw JSON tab — not applied to form: ' + e.message); }
+    }
+    prevPathRef.current = location.pathname;
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Source of truth depends on the active tab. Form tabs mutate dataObj
+  // directly via setDataObj; the JSON tab mutates dataText. Save uses
+  // whichever the user is currently editing.
   async function save() {
     let payload;
-    // If the user has typed in the Raw JSON tab and the text doesn't parse,
-    // bail with a friendly error. Otherwise prefer dataObj.
-    const looksLikeJsonEdits = (() => {
-      try { return JSON.stringify(JSON.parse(dataText)) !== JSON.stringify(dataObj); }
-      catch { return true; }
-    })();
-    if (looksLikeJsonEdits) {
+    if (isJsonTab) {
       try { payload = JSON.parse(dataText); }
-      catch (e) { setErr('JSON parse error in Raw JSON tab: ' + e.message); return; }
-    } else { payload = dataObj; }
+      catch (e) { setErr('JSON parse error: ' + e.message); return; }
+    } else {
+      payload = dataObj;
+    }
     setErr(null); setSaving(true);
     try {
       const result = await savePortfolio(payload);
       setSavedAt(new Date());
       setOrphansRemoved(result?.orphans_removed || 0);
       setDataText(JSON.stringify(payload, null, 2));
+      setDataObj(payload);
     } catch (e) { setErr(e.message); }
     finally { setSaving(false); }
   }

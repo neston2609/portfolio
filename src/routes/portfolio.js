@@ -93,14 +93,29 @@ async function enrichYoutube(data) {
   const maxVideos = Math.max(1, Math.min(50, Number(data.youtube.max_videos || 4)));
   const live = await youtube.fetchChannelData(handle, maxVideos);
   if (!live) return; // API not configured or call failed — keep admin values
-  // Merge: live data wins for fields it provides, but admin-set title
-  // (e.g. localized section header) is preserved.
+  // Live fills defaults; admin's "(override live)" fields in the form win.
+  // Without this, the admin URL/name/tagline silently revert on every render.
+  const admin = data.youtube.channel || {};
+  const merged = { ...live.channel };
+  if (admin.url && admin.url !== '#') merged.url = admin.url;
+  if (hasMultilang(admin.name))    merged.name = admin.name;
+  if (hasMultilang(admin.tagline)) merged.tagline = admin.tagline;
+  // handle, subs, videos, views: always trust live.
   data.youtube = {
     ...data.youtube,
-    channel: { ...(data.youtube.channel || {}), ...live.channel },
+    channel: merged,
     items: live.items,
     _live: true,
   };
+}
+
+// Does this multilang field carry an admin-supplied value? Empty
+// {en:''} placeholders shouldn't override the live channel name.
+function hasMultilang(field) {
+  if (!field) return false;
+  if (typeof field === 'string') return field.trim().length > 0;
+  if (typeof field === 'object') return Object.values(field).some((v) => typeof v === 'string' && v.trim().length > 0);
+  return false;
 }
 
 async function enrichScratch(data) {
@@ -110,11 +125,20 @@ async function enrichScratch(data) {
   const maxProjects = Math.max(1, Math.min(40, Number(data.scratch.max_projects || 4)));
   const live = await scratch.fetchScratchData(handle, maxProjects);
   if (!live) return;
-  // Merge: live values win for what the API returns; admin-typed values
-  // (like followers, which Scratch's public API doesn't expose) stick around.
+  // Live fills in defaults; admin's explicit overrides win for fields the
+  // admin can legitimately customize. Without this, the URL field in the
+  // admin form would silently revert to `scratch.mit.edu/users/<handle>/`
+  // on every render, defeating the field.
+  const admin = data.scratch.profile || {};
+  const merged = { ...live.profile };
+  if (admin.url && admin.url !== '#') merged.url = admin.url;
+  if (admin.bio) merged.bio = admin.bio;
+  if (typeof admin.followers === 'number' && admin.followers > 0) merged.followers = admin.followers;
+  // handle stays as the normalized live value (admin input may have @ or URL form);
+  // projectsShared + joined are live-only facts.
   data.scratch = {
     ...data.scratch,
-    profile: { ...(data.scratch.profile || {}), ...live.profile },
+    profile: merged,
     items: live.items,
     _live: true,
   };
