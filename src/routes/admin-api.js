@@ -110,6 +110,8 @@ router.patch('/children/:id', express.json(), async (req, res) => {
 });
 
 router.delete('/children/:id', async (req, res) => {
+  // ON DELETE CASCADE wipes media rows; remove the on-disk directory too.
+  media.removeChildDirectory(req.params.id);
   await children.deleteChild(req.params.id);
   res.json({ ok: true });
 });
@@ -131,7 +133,11 @@ router.put('/children/:id/portfolio', express.json({ limit: '2mb' }), async (req
   if (data === undefined) return res.status(400).json({ error: 'data required' });
   await portfolios.updatePortfolio(c.id, data);
   if (visibility) await portfolios.setVisibility(c.id, visibility);
-  res.json({ ok: true });
+  // Anything the saved portfolio no longer references (a removed gallery
+  // photo, swapped-out award scan, deleted social icon, etc.) is fair game
+  // to clean up. Runs after the save so the new data is authoritative.
+  const removed = await media.sweepOrphans(c.id);
+  res.json({ ok: true, orphans_removed: removed });
 });
 
 // --- Media ---------------------------------------------------------------
@@ -175,6 +181,9 @@ router.delete('/children/:id/avatar', async (req, res) => {
   const c = await children.getChildById(req.params.id);
   if (!c) return res.status(404).json({ error: 'not found' });
   const updated = await children.updateChild(c.id, { avatar_media_id: null });
+  // Removing the avatar may have orphaned the media file (if nothing in
+  // the portfolio references the same URL). Sweep it.
+  await media.sweepOrphans(c.id);
   res.json({ child: updated });
 });
 
