@@ -173,15 +173,22 @@ export function Row({ children, cols = 2 }) {
 export function FileAttachField({ label, value, onChange, uploadUrl, previewBase, accept, api }) {
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState(null);
-  const [hover, setHover] = React.useState(null); // { x, y, side } for fixed-position popover
-  const isPdf = value && /\.pdf(\?|$)/i.test(value);
-  const isImg = value && /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(value);
+  const [hover, setHover] = React.useState(null); // { x, y, max } for fixed-position popover
+  // Media URLs from /_media/<childId>/<mediaId> carry no file extension, so we
+  // can't tell image vs PDF from the URL alone. Optimistically try as image;
+  // if onError fires (server served a non-image MIME), fall back to the file
+  // icon. Resets when the URL changes (admin replaced the upload).
+  const [imageError, setImageError] = React.useState(false);
+  React.useEffect(() => { setImageError(false); }, [value]);
+
+  const isPdfByUrl = value && /\.pdf(\?|$)/i.test(value);
   const absUrl = value ? ((previewBase || '') + value) : null;
+  const showAsImage = !!value && !isPdfByUrl && !imageError;
 
   // Pin the popover to the thumbnail, then flip to the left side when there
   // isn't room on the right. Clamps vertically inside the viewport.
   function showPreview(e) {
-    if (!isImg) return;
+    if (!showAsImage) return;
     const r = e.currentTarget.getBoundingClientRect();
     const previewMax = Math.min(window.innerWidth * 0.45, 480);
     const fitsRight = r.right + previewMax + 24 <= window.innerWidth;
@@ -218,12 +225,17 @@ export function FileAttachField({ label, value, onChange, uploadUrl, previewBase
             width: 56, height: 56, borderRadius: 4, background: '#1f2937',
             display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden',
             color: '#64748b', fontSize: 10, textAlign: 'center',
-            cursor: isImg ? 'zoom-in' : 'default',
+            cursor: showAsImage ? 'zoom-in' : 'default',
           }}>
-          {isImg ? (
-            <img src={absUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : isPdf ? (
-            <span style={{ fontSize: 20, color: '#fca5a5' }}>📄 PDF</span>
+          {showAsImage ? (
+            <img
+              src={absUrl}
+              alt=""
+              onError={() => setImageError(true)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : value ? (
+            <span style={{ fontSize: 20, color: '#fca5a5' }}>📄 {isPdfByUrl ? 'PDF' : 'file'}</span>
           ) : (
             <span>no file</span>
           )}
@@ -248,7 +260,7 @@ export function FileAttachField({ label, value, onChange, uploadUrl, previewBase
           }}>Remove</button>
         )}
       </div>
-      {hover && isImg && createPortal(
+      {hover && showAsImage && createPortal(
         <div style={{
           position: 'fixed', left: hover.x, top: hover.y, zIndex: 9999,
           pointerEvents: 'none',
