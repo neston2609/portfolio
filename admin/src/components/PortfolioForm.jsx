@@ -12,6 +12,8 @@ export default function PortfolioForm({ data, onChange, childId, portfolioUrl, a
   const setMeta = (patch) => onChange({ ...data, meta: { ...meta, ...patch } });
   // Context used by per-item file-attach fields (certs/awards).
   const fileCtx = { uploadUrl: `/children/${childId}/media`, previewBase: portfolioUrl, api };
+  // Context for the gallery's bulk ZIP import.
+  const galleryCtx = { zipImportUrl: `/children/${childId}/gallery/import-zip`, api };
   // Extract context for AI auto-fill button.
   const extractCtx = { extractUrl: `/children/${childId}/extract-from-file`, api, available: aiAvailable };
 
@@ -39,7 +41,7 @@ export default function PortfolioForm({ data, onChange, childId, portfolioUrl, a
       <ProjectsEditor value={data.projects} onChange={setSection('projects')} />
       <YoutubeEditor value={data.youtube} onChange={setSection('youtube')} />
       <ScratchEditor value={data.scratch} onChange={setSection('scratch')} />
-      <GalleryEditor value={data.gallery} onChange={setSection('gallery')} fileCtx={fileCtx} />
+      <GalleryEditor value={data.gallery} onChange={setSection('gallery')} fileCtx={fileCtx} galleryCtx={galleryCtx} />
       <AchievementsEditor value={data.achievements} onChange={setSection('achievements')} />
       <AwardsEditor value={data.awards} onChange={setSection('awards')} fileCtx={fileCtx} extractCtx={extractCtx} />
       <CertificatesEditor value={data.certificates} onChange={setSection('certificates')} fileCtx={fileCtx} extractCtx={extractCtx} />
@@ -261,12 +263,16 @@ function ScratchEditor({ value, onChange }) {
   );
 }
 
-function GalleryEditor({ value, onChange, fileCtx }) {
+function GalleryEditor({ value, onChange, fileCtx, galleryCtx }) {
   const v = value || {};
   return (
     <Section title="Gallery" badge={(v.items || []).length + ' tiles'}>
       <MultilangField label="Section title" value={v.title} onChange={(x) => onChange({ ...v, title: x })} placeholder="Gallery" />
       <MultilangField label="Intro" value={v.intro} onChange={(x) => onChange({ ...v, intro: x })} />
+      <ZipImporter
+        ctx={galleryCtx}
+        onImport={(items) => onChange({ ...v, items: [...(v.items || []), ...items] })}
+      />
       <ArrayField
         label="Gallery tiles"
         items={v.items}
@@ -540,6 +546,72 @@ function ExtractButton({ fileUrl, ctx, apply }) {
       </button>
       {okMsg && <span style={{ color: '#86efac', fontSize: 12 }}>{okMsg}</span>}
       {err && <span style={{ color: '#fca5a5', fontSize: 12 }}>{err}</span>}
+    </div>
+  );
+}
+
+// Bulk gallery upload: pick a ZIP of photos, server extracts every image
+// and returns gallery-item shapes; we append them to the form. Save the
+// portfolio afterwards to persist the new items. Show errors + skipped
+// files inline so the admin knows exactly what landed and what didn't.
+function ZipImporter({ ctx, onImport }) {
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  const [summary, setSummary] = React.useState(null);
+
+  async function pick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true); setErr(null); setSummary(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await ctx.api.post(ctx.zipImportUrl, fd);
+      onImport(res.items || []);
+      setSummary(res);
+      e.target.value = '';
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{
+      padding: 12, border: '1px dashed #334155', borderRadius: 8,
+      background: '#0b1220', display: 'grid', gap: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <label style={{
+          background: '#7c3aed', color: '#fff', borderRadius: 6, padding: '8px 14px',
+          fontSize: 13, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1, fontWeight: 600,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+        }}>
+          {busy ? 'Extracting…' : '📦 Import gallery from ZIP'}
+          <input type="file" accept=".zip,application/zip" onChange={pick} disabled={busy} style={{ display: 'none' }} />
+        </label>
+        <span style={{ color: '#94a3b8', fontSize: 12 }}>
+          Every image inside (PNG/JPG/WebP/GIF) becomes a new tile. Save the portfolio after import to persist.
+        </span>
+      </div>
+      {err && <div style={{ color: '#fca5a5', fontSize: 13 }}>{err}</div>}
+      {summary && (
+        <div style={{ fontSize: 12, color: '#cbd5e1' }}>
+          ✓ Added <strong style={{ color: '#86efac' }}>{summary.items?.length || 0}</strong> tile{(summary.items?.length || 0) === 1 ? '' : 's'}.
+          {summary.skipped?.length > 0 && (
+            <div style={{ color: '#94a3b8', marginTop: 4 }}>
+              Skipped {summary.skipped.length} non-image file{summary.skipped.length === 1 ? '' : 's'}:
+              {' '}{summary.skipped.slice(0, 5).join(', ')}{summary.skipped.length > 5 ? '…' : ''}
+            </div>
+          )}
+          {summary.errors?.length > 0 && (
+            <div style={{ color: '#fca5a5', marginTop: 4 }}>
+              {summary.errors.length} error{summary.errors.length === 1 ? '' : 's'}:
+              <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
+                {summary.errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

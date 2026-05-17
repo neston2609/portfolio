@@ -12,6 +12,7 @@ const portfolios = require('../services/portfolios');
 const themes = require('../services/themes');
 const media = require('../services/media');
 const aiExtract = require('../services/ai-extract');
+const gallery = require('../services/gallery');
 const { wrapRouter } = require('../utils/async-handler');
 
 const router = wrapRouter(express.Router());
@@ -160,6 +161,30 @@ router.delete('/children/:id/media/:mediaId', async (req, res) => {
   const ok = await media.deleteMedia(req.params.id, req.params.mediaId);
   if (!ok) return res.status(404).json({ error: 'not found' });
   res.json({ ok: true });
+});
+
+// Bulk-import gallery photos from a ZIP archive. Returns item shapes for
+// the admin to merge into its form state — saving the portfolio is what
+// actually persists the new gallery items. Media rows are created up-front;
+// abandoned imports are cleaned up by sweepOrphans on the next save.
+router.post('/children/:id/gallery/import-zip', upload.single('file'), async (req, res) => {
+  const c = await children.getChildById(req.params.id);
+  if (!c) return res.status(404).json({ error: 'not found' });
+  if (!req.file) return res.status(400).json({ error: 'file required (zip)' });
+  if (!/zip/i.test(req.file.mimetype) && !/\.zip$/i.test(req.file.originalname || '')) {
+    return res.status(400).json({ error: 'expected a .zip file' });
+  }
+
+  const tmpPath = require('path').join(require('os').tmpdir(), `gallery-${Date.now()}.zip`);
+  require('fs').writeFileSync(tmpPath, req.file.buffer);
+  try {
+    const result = await gallery.importGalleryZip(c.id, tmpPath);
+    res.status(201).json(result);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  } finally {
+    try { require('fs').unlinkSync(tmpPath); } catch (_) {}
+  }
 });
 
 // --- Avatar (the child's main profile photo) -----------------------------
