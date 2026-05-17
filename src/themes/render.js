@@ -51,6 +51,7 @@ function renderTheme(theme, { portfolioData, childMeta, assetBase }) {
   const injection = [
     buildDataScript(portfolioData, childMeta),
     buildVisibilityCss(portfolioData),
+    MOBILE_CSS,
   ].join('\n');
 
   if (html.includes('<!--PORTFOLIO_DATA-->')) {
@@ -71,6 +72,60 @@ const SECTION_ID_BY_KEY = {
   projects: 'quests', youtube: 'youtube', scratch: 'scratch',
   gallery: 'gallery', achievements: 'achievements', social: 'contact',
 };
+// Mobile responsive overrides applied to every theme at render time.
+// The 4 built-in themes (and most uploaded ones following the Claude Design
+// shape) lay everything out with inline-styled CSS Grid sized for desktop
+// (3-4 columns, big section padding). On a phone those grids cramp into
+// 75px-wide columns and the design becomes unusable. Rather than edit each
+// theme's hundreds of inline styles, we let CSS specificity do the work:
+// !important rules in a max-width media query override the inline styles
+// only when the viewport is narrow.
+//
+// Targets are intentionally aggressive — we'd rather over-stack a layout
+// on mobile than leave it cramped.
+const MOBILE_CSS = `<style id="rasikawan-mobile">
+@media (max-width: 768px) {
+  /* Stack any inline-styled multi-column grid into a single column.
+     Catches everything that React renders as style="grid-template-columns:..."  */
+  *[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  /* Auto rows that were sized for desktop become "as tall as content" */
+  *[style*="grid-auto-rows"] {
+    grid-auto-rows: auto !important;
+  }
+  /* Tight horizontal padding on sections — desktop uses 32-48px which eats
+     most of a 375px screen */
+  section {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  /* Allow horizontal flex rows (nav menus, social link bars, hero CTAs) to
+     wrap onto multiple lines instead of overflowing */
+  *[style*="display:flex"], *[style*="display: flex"] {
+    flex-wrap: wrap !important;
+  }
+  /* Big inline min-heights (hero panels) cap to content height */
+  *[style*="min-height: 540"], *[style*="min-height:540"],
+  *[style*="min-height: 480"], *[style*="min-height:480"] {
+    min-height: auto !important;
+  }
+  /* Oversized headlines can break across lines without horizontal scroll */
+  h1, h2, h3 { word-break: break-word !important; }
+  /* Final safety net: never scroll the page sideways */
+  html, body { overflow-x: hidden !important; }
+}
+@media (max-width: 480px) {
+  section {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+  }
+}
+</style>`;
+
 function buildVisibilityCss(data) {
   const hidden = [];
   for (const [k, id] of Object.entries(SECTION_ID_BY_KEY)) {
