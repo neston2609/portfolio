@@ -183,13 +183,26 @@ router.delete('/children/:id/avatar', async (req, res) => {
 // file. Body: { file_url: "/_media/<childId>/<mediaId>" }. Returns the
 // extracted fields, or 400 with `ai_unavailable` if no ANTHROPIC_API_KEY.
 
-router.get('/ai/status', (_req, res) => {
-  res.json({ available: aiExtract.isAvailable() });
+router.get('/ai/status', async (_req, res) => {
+  res.json(await aiExtract.publicStatus());
+});
+
+router.put('/ai/settings', express.json(), async (req, res) => {
+  try {
+    const next = await aiExtract.saveConfig(req.body || {});
+    res.json(next);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.delete('/ai/settings', async (_req, res) => {
+  res.json(await aiExtract.clearConfig());
 });
 
 router.post('/children/:id/extract-from-file', express.json(), async (req, res) => {
-  if (!aiExtract.isAvailable()) {
-    return res.status(400).json({ error: 'ai_unavailable', message: 'ANTHROPIC_API_KEY is not configured on the server' });
+  if (!(await aiExtract.isAvailable())) {
+    return res.status(400).json({ error: 'ai_unavailable', message: 'No GenAI provider is configured. Set one up in Admin → GenAI.' });
   }
   const c = await children.getChildById(req.params.id);
   if (!c) return res.status(404).json({ error: 'not found' });

@@ -85,6 +85,15 @@ CREATE TABLE IF NOT EXISTS visibility_settings (
   PRIMARY KEY (child_id, section_key)
 );
 
+-- App-wide settings (single-row-per-key, JSONB value).
+-- Used today for the GenAI provider config; reusable for other admin-tunable
+-- knobs. Anything stored here is reachable from any node and survives restarts.
+CREATE TABLE IF NOT EXISTS app_settings (
+  key        text PRIMARY KEY,
+  value      jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- Express session store (connect-pg-simple).
 CREATE TABLE IF NOT EXISTS "session" (
   "sid"    varchar NOT NULL COLLATE "default" PRIMARY KEY,

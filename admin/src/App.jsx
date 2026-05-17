@@ -6,6 +6,7 @@ import Children from './pages/Children.jsx';
 import ChildEditor from './pages/ChildEditor.jsx';
 import Themes from './pages/Themes.jsx';
 import Account from './pages/Account.jsx';
+import GenAI from './pages/GenAI.jsx';
 
 export default function App() {
   const [me, setMe] = useState(undefined); // undefined = loading, null = logged out
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/children" element={<Children />} />
           <Route path="/children/:id" element={<ChildEditor />} />
           <Route path="/themes" element={<Themes />} />
+          <Route path="/genai" element={<GenAI />} />
           <Route path="/account" element={<Account me={me} />} />
           <Route path="*" element={<Centered>Not found</Centered>} />
         </Routes>
@@ -57,6 +59,7 @@ function Nav({ me, onLogout }) {
       <nav style={{ display: 'flex', gap: 16 }}>
         <NavLink to="/children">Children</NavLink>
         <NavLink to="/themes">Themes</NavLink>
+        <NavLink to="/genai">GenAI</NavLink>
         <NavLink to="/account">Account</NavLink>
       </nav>
       <span style={{ marginLeft: 'auto', color: '#94a3b8', fontSize: 13 }}>{me.email}</span>
