@@ -38,23 +38,30 @@ export default function ChildEditor() {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [aiAvailable, setAiAvailable] = useState(false);
+  const [loadErr, setLoadErr] = useState(null);
 
   async function loadAll() {
-    const [c, t, p, m, ai] = await Promise.all([
-      api.get(`/children/${id}`),
-      api.get('/themes'),
-      api.get(`/children/${id}/portfolio`),
-      api.get(`/children/${id}/media`),
-      api.get('/ai/status').catch(() => ({ available: false })),
-    ]);
-    setChild(c);
-    setThemes(t);
-    setPortfolio(p);
-    setVisibility(p.visibility || {});
-    setMedia(m);
-    setDataObj(p.data || {});
-    setDataText(JSON.stringify(p.data || {}, null, 2));
-    setAiAvailable(!!ai.available);
+    setLoadErr(null);
+    try {
+      // /ai/status is best-effort — the rest of the editor must work without it.
+      const [c, t, p, m, ai] = await Promise.all([
+        api.get(`/children/${id}`),
+        api.get('/themes'),
+        api.get(`/children/${id}/portfolio`),
+        api.get(`/children/${id}/media`),
+        api.get('/ai/status').catch(() => ({ available: false })),
+      ]);
+      setChild(c);
+      setThemes(t);
+      setPortfolio(p);
+      setVisibility(p.visibility || {});
+      setMedia(m);
+      setDataObj(p.data || {});
+      setDataText(JSON.stringify(p.data || {}, null, 2));
+      setAiAvailable(!!ai.available);
+    } catch (e) {
+      setLoadErr(e.message || 'Failed to load child data');
+    }
   }
   useEffect(() => { loadAll(); }, [id]);
 
@@ -79,6 +86,18 @@ export default function ChildEditor() {
 
   const portfolioUrl = useMemo(() => child ? `http://${child.firstname_slug}.rasikawan.com` : '', [child]);
 
+  if (loadErr) return (
+    <div>
+      <Link to="/children" style={{ color: '#94a3b8', textDecoration: 'none' }}>← All children</Link>
+      <div style={{ marginTop: 18, padding: 18, background: '#7f1d1d33', border: '1px solid #7f1d1d', borderRadius: 8, color: '#fca5a5' }}>
+        <strong>Couldn't load this child:</strong> {loadErr}
+        <p style={{ margin: '10px 0 0', fontSize: 13 }}>
+          Check the browser network tab to see which request failed. If you just deployed, the server may need <code>npm run migrate</code> (creates the <code>app_settings</code> table for GenAI config).
+        </p>
+        <button onClick={loadAll} style={{ ...btn('ghost'), marginTop: 10 }}>Retry</button>
+      </div>
+    </div>
+  );
   if (!child || !portfolio) return <p>Loading…</p>;
 
   async function saveProfile(patch) {

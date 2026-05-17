@@ -16,20 +16,38 @@ export default function GenAI() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [ok, setOk] = useState(null);
+  const [loadErr, setLoadErr] = useState(null);
 
   async function refresh() {
-    const s = await api.get('/ai/status');
-    setStatus(s);
-    setForm({
-      enabled: s.config?.enabled !== false,
-      provider: s.config?.provider || s.effective_provider || 'anthropic',
-      model: s.config?.model || s.effective_model || '',
-      api_key: s.config?.api_key || '', // masked, or empty
-      base_url: s.config?.base_url || '',
-    });
+    setLoadErr(null);
+    try {
+      const s = await api.get('/ai/status');
+      setStatus(s);
+      setForm({
+        enabled: s.config?.enabled !== false,
+        provider: s.config?.provider || s.effective_provider || 'anthropic',
+        model: s.config?.model || s.effective_model || '',
+        api_key: s.config?.api_key || '', // masked, or empty
+        base_url: s.config?.base_url || '',
+      });
+    } catch (e) {
+      setLoadErr(e.message || 'Failed to load GenAI status');
+    }
   }
   useEffect(() => { refresh(); }, []);
 
+  if (loadErr) return (
+    <div>
+      <h1 style={{ margin: 0 }}>GenAI</h1>
+      <div style={{ marginTop: 18, padding: 18, background: '#7f1d1d33', border: '1px solid #7f1d1d', borderRadius: 8, color: '#fca5a5' }}>
+        <strong>Couldn't load settings:</strong> {loadErr}
+        <p style={{ margin: '10px 0 0', fontSize: 13, color: '#fca5a5' }}>
+          If you just deployed, run <code>npm run migrate</code> on the server to create the <code>app_settings</code> table, then reload.
+        </p>
+        <button onClick={refresh} style={{ ...btn('ghost'), marginTop: 10 }}>Retry</button>
+      </div>
+    </div>
+  );
   if (!status || !form) return <p>Loading…</p>;
 
   const providerMeta = status.providers.find((p) => p.id === form.provider);
