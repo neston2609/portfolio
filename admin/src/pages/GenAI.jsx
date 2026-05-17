@@ -111,6 +111,7 @@ export default function GenAI() {
           <span style={k}>Model in use</span>
           <span><code>{status.effective_model || '—'}</code></span>
         </div>
+        <TestConnection available={status.available} />
       </section>
 
       <form onSubmit={save} style={panel}>
@@ -180,6 +181,51 @@ export default function GenAI() {
 
 function labelFor(status, id) {
   return status.providers.find((p) => p.id === id)?.label || id;
+}
+
+// One-click round-trip against the configured provider so the admin can see
+// the exact error (bad key, unknown model, quota, network) instead of
+// debugging by uploading random files to the extract endpoint.
+function TestConnection({ available }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  async function run() {
+    setBusy(true); setResult(null);
+    try { setResult(await api.post('/ai/test', {})); }
+    catch (e) { setResult({ ok: false, error: e.message }); }
+    finally { setBusy(false); }
+  }
+  return (
+    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #1f2937' }}>
+      <button onClick={run} disabled={busy || !available} style={{
+        background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6,
+        padding: '8px 14px', fontSize: 13, cursor: busy ? 'wait' : 'pointer',
+        opacity: (busy || !available) ? 0.6 : 1, fontWeight: 600,
+      }}>{busy ? 'Testing…' : '🔌 Test connection'}</button>
+      {result && (
+        <div style={{
+          marginTop: 10, padding: 12, borderRadius: 6, fontSize: 13,
+          background: result.ok ? '#052e16' : '#7f1d1d33',
+          border: '1px solid ' + (result.ok ? '#14532d' : '#7f1d1d'),
+          color: result.ok ? '#bbf7d0' : '#fca5a5',
+          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+        }}>
+          {result.ok ? (
+            <>
+              <strong>✓ Connected</strong><br />
+              <span style={{ color: '#bbf7d0aa' }}>Provider: <code>{result.provider}</code> · Model: <code>{result.model}</code></span><br />
+              Reply: <em>{result.reply}</em>
+            </>
+          ) : (
+            <>
+              <strong>✗ Test failed</strong>{result.provider && <> · <code>{result.provider}</code>{result.model && <> · <code>{result.model}</code></>}</>}<br />
+              {result.error}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Field({ label, children }) {

@@ -96,15 +96,32 @@ async function clearConfig() {
 
 async function extractAwardData(filePath, mimeType) {
   const cfg = await loadConfig();
-  if (!cfg) return null;
+  if (!cfg) return { ok: false, error: 'no provider configured' };
   const impl = PROVIDERS[cfg.provider];
-  if (!impl) return null;
+  if (!impl) return { ok: false, error: `unknown provider: ${cfg.provider}` };
   try {
     const result = await impl.extract(filePath, mimeType, cfg);
-    return result || null;
+    if (!result) return { ok: false, error: 'provider returned no data' };
+    return { ok: true, data: result };
   } catch (e) {
-    console.warn(`[ai-extract] ${cfg.provider} failed:`, e.message);
-    return null;
+    console.warn(`[ai-extract] ${cfg.provider} extract failed:`, e.message);
+    return { ok: false, error: e.message || String(e) };
+  }
+}
+
+// Run a tiny text-only round-trip against the configured provider to verify
+// api_key + model + network. Returns { ok, reply | error, provider, model }.
+async function testCurrent() {
+  const cfg = await loadConfig();
+  if (!cfg) return { ok: false, error: 'no provider configured' };
+  const impl = PROVIDERS[cfg.provider];
+  if (!impl?.test) return { ok: false, error: `provider ${cfg.provider} has no test function` };
+  try {
+    const reply = await impl.test(cfg);
+    return { ok: true, reply, provider: cfg.provider, model: cfg.model || impl.DEFAULT_MODEL };
+  } catch (e) {
+    console.warn(`[ai-extract] ${cfg.provider} test failed:`, e.message);
+    return { ok: false, error: e.message || String(e), provider: cfg.provider, model: cfg.model || impl.DEFAULT_MODEL };
   }
 }
 
@@ -115,4 +132,4 @@ function maskKey(key) {
 }
 function isMasked(s) { return typeof s === 'string' && s.includes('…'); }
 
-module.exports = { isAvailable, publicStatus, saveConfig, clearConfig, extractAwardData };
+module.exports = { isAvailable, publicStatus, saveConfig, clearConfig, extractAwardData, testCurrent };

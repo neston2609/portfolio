@@ -65,4 +65,20 @@ async function buildContent(filePath, mimeType) {
   return null;
 }
 
-module.exports = { extract, DEFAULT_MODEL };
+// Lightweight smoke test — verifies api_key + model + network + (for
+// openai_compatible) base_url. No file, no schema.
+async function test(config) {
+  if (!config?.api_key) throw new Error('openai api_key is required');
+  const client = new OpenAI({
+    apiKey: config.api_key,
+    ...(config.base_url ? { baseURL: config.base_url } : {}),
+  });
+  const r = await client.chat.completions.create({
+    model: config.model || DEFAULT_MODEL,
+    max_completion_tokens: 32,
+    messages: [{ role: 'user', content: 'Reply with exactly the two letters: OK' }],
+  });
+  return r.choices?.[0]?.message?.content || '(empty response)';
+}
+
+module.exports = { extract, test, DEFAULT_MODEL };

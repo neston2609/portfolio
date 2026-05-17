@@ -38,13 +38,53 @@ async function extract(filePath, mimeType, config) {
   });
 
   const part = filePart(filePath, mimeType);
-  if (!part) throw new Error(`unsupported file type for Google Gemini: ${mimeType}`);
+  if (!part) throw geminiError(`unsupported file type for Google Gemini: ${mimeType}`);
 
-  const result = await model.generateContent([part, { text: PROMPT }]);
+  let result;
+  try { result = await model.generateContent([part, { text: PROMPT }]); }
+  catch (e) { throw geminiError(`generateContent failed: ${detailMessage(e)}`); }
+
   const text = result?.response?.text?.();
-  if (!text) return null;
+  if (!text) {
+    const candidate = result?.response?.candidates?.[0];
+    const finishReason = candidate?.finishReason || 'unknown';
+    const blocked = candidate?.safetyRatings?.filter((r) => r.blocked).map((r) => r.category).join(',');
+    throw geminiError(`empty response (finishReason: ${finishReason}${blocked ? `, blocked: ${blocked}` : ''})`);
+  }
   try { return normalize(JSON.parse(text)); }
-  catch (_) { return null; }
+  catch (e) { throw geminiError(`response JSON parse failed: ${e.message} · raw: ${text.slice(0, 200)}`); }
+}
+
+// Lightweight smoke test — no file, no schema. Verifies api_key + model id +
+// network reachability. Returns the model's reply text on success.
+async function test(config) {
+  if (!config?.api_key) throw new Error('google api_key is required');
+  const client = new GoogleGenerativeAI(config.api_key);
+  const model = client.getGenerativeModel({ model: config.model || DEFAULT_MODEL });
+  try {
+    const r = await model.generateContent('Reply with exactly the two letters: OK');
+    return r?.response?.text?.()?.trim() || '(empty response)';
+  } catch (e) {
+    throw geminiError(`test failed: ${detailMessage(e)}`);
+  }
+}
+
+function geminiError(msg) {
+  const e = new Error(msg);
+  e.provider = 'google';
+  return e;
+}
+
+// SDK errors hide useful detail (status code, GoogleGenerativeAIFetchError
+// wraps a fetch response). Surface whatever we can find.
+function detailMessage(e) {
+  if (!e) return 'unknown';
+  const parts = [];
+  if (e.status) parts.push(`status=${e.status}`);
+  if (e.statusText) parts.push(`statusText=${e.statusText}`);
+  if (e.errorDetails) parts.push(`details=${JSON.stringify(e.errorDetails).slice(0, 200)}`);
+  parts.push(e.message || String(e));
+  return parts.join(' · ');
 }
 
 function filePart(filePath, mimeType) {
@@ -57,4 +97,4 @@ function filePart(filePath, mimeType) {
   return null;
 }
 
-module.exports = { extract, DEFAULT_MODEL };
+module.exports = { extract, test, DEFAULT_MODEL };

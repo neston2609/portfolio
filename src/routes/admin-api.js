@@ -234,6 +234,13 @@ router.delete('/ai/settings', async (_req, res) => {
   res.json(await aiExtract.clearConfig());
 });
 
+// Round-trips a trivial text-only request against the configured provider
+// so the admin can verify api_key + model + network before trying file
+// extraction. Always returns 200; success/failure is in the body.
+router.post('/ai/test', async (_req, res) => {
+  res.json(await aiExtract.testCurrent());
+});
+
 router.post('/children/:id/extract-from-file', express.json(), async (req, res) => {
   if (!(await aiExtract.isAvailable())) {
     return res.status(400).json({ error: 'ai_unavailable', message: 'No GenAI provider is configured. Set one up in Admin → GenAI.' });
@@ -250,11 +257,11 @@ router.post('/children/:id/extract-from-file', express.json(), async (req, res) 
   const mediaRecord = await media.getMediaForServe(c.id, m[1]);
   if (!mediaRecord) return res.status(404).json({ error: 'media not found' });
 
-  const extracted = await aiExtract.extractAwardData(mediaRecord.storage_path, mediaRecord.mime_type);
-  if (!extracted) {
-    return res.status(502).json({ error: 'extraction_failed', message: 'Claude could not extract metadata from this file' });
+  const result = await aiExtract.extractAwardData(mediaRecord.storage_path, mediaRecord.mime_type);
+  if (!result.ok) {
+    return res.status(502).json({ error: 'extraction_failed', message: result.error || 'unknown error' });
   }
-  res.json(extracted);
+  res.json(result.data);
 });
 
 // --- Themes --------------------------------------------------------------

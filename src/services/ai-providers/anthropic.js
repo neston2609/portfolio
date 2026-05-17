@@ -41,4 +41,17 @@ function fileToBlock(filePath, mimeType) {
   return null;
 }
 
-module.exports = { extract, DEFAULT_MODEL };
+// Lightweight smoke test — verifies api_key + model + network.
+async function test(config) {
+  if (!config?.api_key) throw new Error('anthropic api_key is required');
+  const client = new Anthropic({ apiKey: config.api_key, ...(config.base_url ? { baseURL: config.base_url } : {}) });
+  const r = await client.messages.create({
+    model: config.model || DEFAULT_MODEL,
+    max_tokens: 32,
+    messages: [{ role: 'user', content: 'Reply with exactly the two letters: OK' }],
+  });
+  const text = r.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+  return text || '(empty response)';
+}
+
+module.exports = { extract, test, DEFAULT_MODEL };
